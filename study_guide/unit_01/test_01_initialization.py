@@ -13,7 +13,6 @@ def test_q1_list():
 
   pass
 
-
 def test_q1_four_dim_tensor():
 
   # Define 4-dimensional shape (e.g., batch_size, channels, height, width)
