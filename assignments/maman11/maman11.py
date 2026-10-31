@@ -9,10 +9,12 @@ def can_be_expanded(A, B):
   index_B = B.dim() - 1
 
   if index_A > index_B:
-    # A has more dimensions than B, thus cannot be expanded to B
+    # A has more dimensions than B
     return False
 
   while index_A >= 0:
+    size_A = A.shape[index_A]
+    size_B = A.shape[index_B]
     if A.shape[index_A] != 1 and A.shape[index_A] != B.shape[index_B]:
       # Current A's dimension can only be expanded if its length is 1 or its length matches that of B's
       return False
@@ -32,7 +34,6 @@ def my_expand_as(A, B):
   C = A.clone()
 
   # Add singleton dimensions at the beginning until ranks match
-  # TODO: can insert using counters instead?
   while C.dim() < B.dim():
     C = C.unsqueeze(0)
 

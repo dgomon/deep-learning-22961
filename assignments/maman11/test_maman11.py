@@ -27,14 +27,38 @@ def test_can_be_expanded():
 def test_expand():
   data = (
     (
-      torch.tensor([97, 17, 2]),
-      torch.tensor([[11, 12, 13],
-                   [21, 22, 23],
-                   [31, 32, 33]]),
-      torch.tensor([[97, 17,  2],
-                    [97, 17,  2],
-                    [97, 17,  2]])
+      torch.tensor([1]),
+      torch.tensor([3, 2]),
+      torch.tensor([1, 1],)
     ),
+    (
+      torch.tensor([5, 7]),
+      torch.tensor([3, 2]),
+      torch.tensor([5, 7],)
+    ),
+    (
+      torch.tensor([5, 7]),
+      torch.tensor([[1, 2],
+                    [3, 4]]),
+      torch.tensor([[5, 7],
+                    [5, 7]]),
+    ),
+    (
+      torch.tensor([1]),
+      torch.tensor([[3, 2],
+                    [4, 6]]),
+      torch.tensor([[1, 1],
+                    [1, 1]]),
+    ),
+    # (
+    #   torch.tensor([97, 17, 2]),
+    #   torch.tensor([[11, 12, 13],
+    #                [21, 22, 23],
+    #                [31, 32, 33]]),
+    #   torch.tensor([[97, 17,  2],
+    #                 [97, 17,  2],
+    #                 [97, 17,  2]])
+    # ),
   )
 
   for entry in data:
