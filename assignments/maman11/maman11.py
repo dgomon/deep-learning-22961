@@ -48,16 +48,17 @@ def can_be_broadcasted(A, B) -> tuple[bool, torch.Size | None]:
     Returns (True, broadcast_shape) if compatible, otherwise (False, None).
   """
 
-  for i in range(min(A.dim(), B.dim())):
-    current_size_dim_A = A.shape[-1]
-    current_size_dim_B = B.shape[-1]
+  for i in range(1, min(A.dim(), B.dim()) + 1):
+    current_size_dim_A = A.shape[-i]
+    current_size_dim_B = B.shape[-i]
     if (current_size_dim_A != current_size_dim_B) and (current_size_dim_A != 1) and (current_size_dim_B != 1):
       return False, None
 
-  C = [1] * max(len(A.shape), len(B.shape))
+  C = [0] * max(len(A.shape), len(B.shape))
 
-  for i in range(min(A.dim(), B.dim())):
-    C[-i - 1] = max(A.size()[-i - 1], B.size()[-i - 1])
+  for i in range(1, min(A.dim(), B.dim()) + 1):
+    a, b = A.shape[-i], B.shape[-i]
+    C[-i] = a if b == 1 else b
 
   if A.dim() > B.dim():
     for i in range(A.dim() - B.dim()):

@@ -66,19 +66,43 @@ def test_expand():
 
 def test_can_be_broadcasted():
   data = (
-    (((1,), (1,)), (True, (1,))),
-    (((1,), (5,)), (True, (5,))),
-    (((5,), (1,)), (True, (5,))),
-    (((2,), (2, 2,)), (True, (2, 2))),
-    (((1,), (5, 2,)), (True, (5, 2))),
-    (((3,), (5, 2,)), (False, None)),
-    (((1, 2), (5, 2,)), (True, (5, 2))),
-    (((5, 2), (5, 2,)), (True, (5, 2))),
-    (((1, 3), (3, 1,)), (True, (3, 3))),
-    (((1, 3), (3, 3,)), (True, (3, 3))),
-    (((5, 2), (8, 5, 2,)), (True, (8, 5, 2))),
-    (((8, 5, 2), (5, 2,)), (True, (8, 5, 2))),
-    (((8, 5, 2), (5, 2, 3)), (False, None)),
+    # --- 1. Scalars / 0-D Tensors () ---
+    # Broadcast with scalar should retain the other shape unchanged
+    (((), ()), (True, ())),
+    (((), (1,)), (True, (1,))),
+    (((3, 4), ()), (True, (3, 4))),
+    (((), (2, 5, 1)), (True, (2, 5, 1))),
+
+    # --- 2. Zero-sized / Empty dimensions (size 0) ---
+    # 0 can broadcast with 1 or 0, but not with n > 1
+    (((0,), (0,)), (True, (0,))),
+    (((0,), (1,)), (True, (0,))),
+    (((1,), (0,)), (True, (0,))),
+    (((0,), (3,)), (False, None)),
+    (((2, 0, 1), (1, 1, 4)), (True, (2, 0, 4))),
+    (((2, 0, 3), (2, 1, 4)), (False, None)),
+
+    # # --- 3. Mismatches at non-trailing positions ---
+    # # Trailing match, mismatch occurs at inner dimensions
+    (((2, 3), (4, 3)), (False, None)),
+    (((2, 5, 4), (3, 5, 4)), (False, None)),
+    (((2, 1, 4), (3, 5, 4)), (False, None)),
+    (((5, 1, 2), (5, 3, 4)), (False, None)),
+    #
+    # # --- 4. Alternating / Cross-broadcasting (both tensors expand) ---
+    # # Multiple alternating singleton dimensions across higher ranks
+    (((1, 4, 1, 6), (3, 1, 5, 1)), (True, (3, 4, 5, 6))),
+    (((2, 1, 2, 1), (1, 3, 1, 3)), (True, (2, 3, 2, 3))),
+    #
+    # # --- 5. High rank difference ---
+    # # Significant dimensionality gap (e.g., 1D vs 5D)
+    (((4,), (2, 1, 3, 1, 4)), (True, (2, 1, 3, 1, 4))),
+    (((1,), (2, 3, 4, 5, 6)), (True, (2, 3, 4, 5, 6))),
+    (((5,), (2, 3, 4, 5, 6)), (False, None)),
+    # #
+    # # # --- 6. All ones (unit tensors) ---
+    (((1, 1, 1), (1, 1, 1)), (True, (1, 1, 1))),
+    (((1, 1, 1), (4, 5)), (True, (1, 4, 5))),
   )
 
   for (shape_a, shape_b), (expected_broadcastable, expected_shape) in data:
