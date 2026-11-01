@@ -42,8 +42,11 @@ def my_expand_as(A, B):
 
   return C
 
-def can_be_broadcasted(A, B):
-  r"""Return True iff A and Be can be broadcasted together"""
+def can_be_broadcasted(A, B) -> tuple[bool, torch.Size | None]:
+  r"""Determine if tensors A and B can be broadcasted together.
+
+    Returns (True, broadcast_shape) if compatible, otherwise (False, None).
+  """
 
   for i in range(min(A.dim(), B.dim())):
     current_size_dim_A = A.shape[-1]
@@ -53,14 +56,14 @@ def can_be_broadcasted(A, B):
 
   C = [1] * max(len(A.shape), len(B.shape))
 
-  for i in range(min(len(A.shape), len(B.shape))):
+  for i in range(min(A.dim(), B.dim())):
     C[-i - 1] = max(A.size()[-i - 1], B.size()[-i - 1])
 
-  if len(A.shape) > len(B.shape):
-    for i in range(len(A.shape) - len(B.shape)):
+  if A.dim() > B.dim():
+    for i in range(A.dim() - B.dim()):
       C[i] = A.shape[i]
-  elif len(B.shape) > len(A.shape):
-    for i in range(len(B.shape) - len(A.shape)):
+  elif B.dim() > A.dim():
+    for i in range(B.dim() - A.dim()):
       C[i] = B.shape[i]
 
   return True, torch.Size(C)
