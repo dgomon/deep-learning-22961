@@ -65,29 +65,29 @@ def test_expand():
     torch.testing.assert_close(my_expand_as(entry[0], entry[1]), entry[2])
 
 def test_can_be_broadcasted():
-  # A = torch.tensor([1])
-  # B = torch.tensor([[5, 7],
-  #                 [3, 2]])
-
   data = (
-    # ((1,), (1,), True),
-    # ((1,), (5,), True),
-    # ((5,), (1,), False),
-    # ((2,), (2, 2,), True),
-    # ((1,), (5, 2,), True),
-    # ((3,), (5, 2,), False),
-    # ((1, 2), (5, 2,), True),
-    # ((5, 2), (5, 2,), True),
-    # ((1, 3), (3, 1,), False),
-    # ((1, 3), (3, 3,), True),
-    # ((5, 2), (8, 5, 2,), True),
-    # ((8, 5, 2), (5, 2,), True),
-    ((8, 5, 2), (5, 2, 3), True),
+    (((1,), (1,)), (True, (1,))),
+    (((1,), (5,)), (True, (5,))),
+    (((5,), (1,)), (True, (5,))),
+    (((2,), (2, 2,)), (True, (2, 2))),
+    (((1,), (5, 2,)), (True, (5, 2))),
+    (((3,), (5, 2,)), (False, None)),
+    (((1, 2), (5, 2,)), (True, (5, 2))),
+    (((5, 2), (5, 2,)), (True, (5, 2))),
+    (((1, 3), (3, 1,)), (True, (3, 3))),
+    (((1, 3), (3, 3,)), (True, (3, 3))),
+    (((5, 2), (8, 5, 2,)), (True, (8, 5, 2))),
+    (((8, 5, 2), (5, 2,)), (True, (8, 5, 2))),
+    (((8, 5, 2), (5, 2, 3)), (False, None)),
   )
 
-  for entry in data:
-    A = torch.empty(entry[0])
-    B = torch.empty(entry[1])
+  for (shape_a, shape_b), (expected_broadcastable, expected_shape) in data:
+      A = torch.empty(shape_a)
+      B = torch.empty(shape_b)
 
-    status, shape = can_be_broadcasted(A, B)
+      status, shape = can_be_broadcasted(A, B)
+      msg = f"Failed for shapes {shape_a} and {shape_b}"
+
+      assert status == expected_broadcastable, f"{msg}: expected status {expected_broadcastable}, got {status}"
+      assert shape == expected_shape, f"{msg}: expected shape {expected_shape}, got {shape}"
   pass
