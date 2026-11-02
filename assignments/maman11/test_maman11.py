@@ -1,51 +1,8 @@
-from collections.abc import Sequence
-
 import pytest
 import torch
 
 from assignments.maman11.maman11 import can_be_expanded, my_expand_as, can_be_broadcasted, my_broadcast
 
-
-@pytest.mark.parametrize(
-    ("shape_a", "shape_b", "expected"),
-    [
-        # Identical shapes
-        ((1,), (1,), True),
-        ((5, 2), (5, 2), True),
-        # Singleton expansions
-        ((1,), (5,), True),
-        ((1,), (5, 2), True),
-        ((1, 2), (5, 2), True),
-        ((1, 3), (3, 3), True),
-        # Prepending leading singleton/new dimensions
-        ((2,), (5, 2), True),
-        ((5, 2), (8, 5, 2), True),
-        # Incompatible contractions or mismatches
-        ((5,), (1,), False),
-        ((3,), (5, 2), False),
-        ((1, 3), (3, 1), False),
-    ],
-    ids=[
-        "1D_same",
-        "2D_same",
-        "1D_expand_to_larger",
-        "1D_expand_to_2D_singleton",
-        "2D_expand_row",
-        "2D_expand_col_and_row",
-        "1D_prepend_dim_match",
-        "2D_prepend_dim_match",
-        "1D_cannot_contract",
-        "1D_dim_mismatch",
-        "2D_shape_transposition_mismatch",
-    ],
-)
-def test_can_be_expanded(
-    shape_a: Sequence[int], shape_b: Sequence[int], expected: bool
-) -> None:
-    a = torch.empty(shape_a)
-    b = torch.empty(shape_b)
-
-    assert can_be_expanded(a, b) == expected
 
 VALID_EXPAND_CASES = [
     # (input_tensor, target_tensor, expected_output, case_id)
@@ -113,6 +70,33 @@ INVALID_EXPAND_CASES = [
     ),
 ]
 
+ALL_EXPAND_CASES = [
+    (*case[:2], True, case[2]) for case in VALID_EXPAND_CASES
+] + [
+    (*case[:2], False, case[2]) for case in INVALID_EXPAND_CASES
+]
+
+@pytest.mark.parametrize(
+    "source, target",
+    [case[:2] for case in ALL_EXPAND_CASES],
+    ids=[case[2] for case in ALL_EXPAND_CASES],
+)
+def test_can_be_expanded(
+    source: torch.Tensor, target: torch.Tensor,
+) -> None:
+  actual = can_be_expanded(source, target)
+  if actual:
+      # Must NOT raise an exception when expandable
+      try:
+          my_expand_as(source, target)
+      except RuntimeError as exc:
+          pytest.fail(f"can_be_expanded returned True, but my_expand_as raised: {exc}")
+  else:
+      # MUST raise RuntimeError when not expandable
+      with pytest.raises(RuntimeError):
+          my_expand_as(source, target)
+
+
 @pytest.mark.parametrize(
     "source, target",
     [case[:2] for case in VALID_EXPAND_CASES],
@@ -134,10 +118,6 @@ def test_my_expand_as_valid(source: torch.Tensor, target: torch.Tensor):
 def test_my_expand_as_incompatible_shapes(source: torch.Tensor, target: torch.Tensor):
     with pytest.raises(RuntimeError):
       my_expand_as(source, target)
-
-
-import pytest
-import torch
 
 
 def get_expected_broadcast(shape_a, shape_b):
