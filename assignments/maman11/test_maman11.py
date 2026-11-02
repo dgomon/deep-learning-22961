@@ -52,50 +52,42 @@ VALID_EXPAND_CASES = [
     (
         torch.tensor([1]),
         torch.tensor([3, 2]),
-        torch.tensor([1, 1]),
         "1d_singleton_to_1d",
     ),
     (
         torch.tensor([5, 7]),
         torch.tensor([3, 2]),
-        torch.tensor([5, 7]),
         "1d_same_shape",
     ),
     (
         torch.tensor([5, 7]),
         torch.tensor([[1, 2], [3, 4]]),
-        torch.tensor([[5, 7], [5, 7]]),
         "1d_to_2d_row_broadcast",
     ),
     (
         torch.tensor([1]),
         torch.tensor([[3, 2], [4, 6]]),
-        torch.tensor([[1, 1], [1, 1]]),
         "1d_singleton_to_2d",
     ),
     (
         torch.tensor([97, 17, 2]),
         torch.tensor([[11, 12, 13], [21, 22, 23], [31, 32, 33]]),
-        torch.tensor([[97, 17, 2], [97, 17, 2], [97, 17, 2]]),
         "1d_to_square_2d",
     ),
     # --- Augmented Cases ---
     (
         torch.tensor(42),
         torch.tensor([[1, 2], [3, 4]]),
-        torch.tensor([[42, 42], [42, 42]]),
         "0d_scalar_to_2d",
     ),
     (
         torch.tensor([[1], [2]]),
         torch.tensor([[0, 0, 0], [0, 0, 0]]),
-        torch.tensor([[1, 1, 1], [2, 2, 2]]),
         "2d_column_singleton_to_2d",
     ),
     (
         torch.tensor([1, 2]),
         torch.empty(2, 2, 2),
-        torch.tensor([[[1, 2], [1, 2]], [[1, 2], [1, 2]]]),
         "1d_to_3d_expansion",
     ),
 ]
@@ -122,15 +114,16 @@ INVALID_EXPAND_CASES = [
 ]
 
 @pytest.mark.parametrize(
-    "source, target, expected",
-    [case[:3] for case in VALID_EXPAND_CASES],
-    ids=[case[3] for case in VALID_EXPAND_CASES],
+    "source, target",
+    [case[:2] for case in VALID_EXPAND_CASES],
+    ids=[case[2] for case in VALID_EXPAND_CASES],
 )
-def test_my_expand_as_valid(source: torch.Tensor, target: torch.Tensor, expected: torch.Tensor):
+def test_my_expand_as_valid(source: torch.Tensor, target: torch.Tensor):
     result = my_expand_as(source, target)
 
     assert result.shape == target.shape
-    torch.testing.assert_close(result, expected)
+    orig_expected = source.expand(target.shape)
+    torch.testing.assert_close(result, orig_expected)
 
 
 @pytest.mark.parametrize(
