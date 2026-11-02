@@ -195,11 +195,11 @@ ALL_BROADCAST_CASES = [
 def test_can_be_broadcasted(
         a: torch.Tensor, b: torch.Tensor
 ) -> None:
-  actual = can_be_broadcasted(a, b)
-  if actual:
+  (actual_are_compatible, actual_shape) = can_be_broadcasted(a, b)
+  if actual_are_compatible:
       # Must NOT raise an exception when can be broadcasted
       try:
-          torch.broadcast_tensors(a, b)
+          expected = torch.broadcast_tensors(a, b)
       except RuntimeError as exc:
           pytest.fail(f"can_be_broadcasted returned True, but torch.broadcast_tensors raised: {exc}")
   else:
