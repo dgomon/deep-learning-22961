@@ -97,6 +97,19 @@ def can_be_broadcasted(a: torch.Tensor, b: torch.Tensor) -> tuple[bool, torch.Si
 
 
 def _broadcast_to(t: torch.Tensor, target_shape: torch.Size) -> torch.Tensor:
+    """Explicitly broadcast a tensor to a target shape using repetition.
+
+        Aligns tensor rank by prepending singleton dimensions, then replicates
+        singleton dimensions via concatenation to match the specified shape.
+
+        Args:
+            t: Input tensor to broadcast.
+            target_shape: Destination shape. Each dimension must be compatible
+                with broadcasting rules (equal to the current dimension or current is 1).
+
+        Returns:
+            A new tensor broadcasted to `target_shape`.
+        """
     res = t.clone()
 
     # Step 1: Align ranks by prepending singleton dimensions
