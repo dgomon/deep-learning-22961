@@ -1,0 +1,1 @@
+quarto render maman11.ipynb --metadata-file pdf-style.yml --to pdf
