@@ -120,12 +120,92 @@ def test_my_expand_as_incompatible_shapes(source: torch.Tensor, target: torch.Te
       my_expand_as(source, target)
 
 
-def get_expected_broadcast(shape_a, shape_b):
-    try:
-        expected_shape = tuple(torch.broadcast_shapes(shape_a, shape_b))
-        return True, expected_shape
-    except RuntimeError:
-        return False, None
+VALID_BROADCAST_CASES = [
+  (
+      torch.tensor([1]),
+      torch.tensor([[11, 12, 13], [21, 22, 23]]),
+      "1d_scalar_like_with_2d",
+  ),
+  (
+      torch.tensor(5),
+      torch.tensor([1, 2, 3]),
+      "0d_scalar_with_1d",
+  ),
+  (
+      torch.tensor(7),
+      torch.tensor(8),
+      "two_0d_scalars",
+  ),
+  (
+      torch.tensor([[1, 2], [3, 4]]),
+      torch.tensor([[5, 6], [7, 8]]),
+      "identical_shapes",
+  ),
+  (
+      torch.tensor([[1, 2, 3]]),
+      torch.tensor([[4], [5]]),
+      "row_and_column_vectors",
+  ),
+  (
+      torch.tensor([10, 20, 30]),
+      torch.tensor([[1, 2, 3], [4, 5, 6]]),
+      "rank_extension_1d_with_2d",
+  ),
+  (
+      torch.arange(6).reshape(2, 1, 3),
+      torch.arange(4).reshape(1, 4, 1),
+      "higher_dimensional_expansion",
+  ),
+]
+
+INVALID_BROADCAST_CASES = [
+  (
+      torch.tensor([1, 2]),
+      torch.tensor([1, 2, 3]),
+      "incompatible_trailing_dims",
+  ),
+  (
+      torch.zeros(2, 3),
+      torch.zeros(2, 4),
+      "incompatible_inner_dims",
+  ),
+  (
+      torch.zeros(3, 2),
+      torch.zeros(4, 2),
+      "incompatible_leading_dims",
+  ),
+  (
+      torch.zeros(2, 3, 4),
+      torch.zeros(2, 5, 4),
+      "multidimensional_mismatch",
+  ),
+]
+
+ALL_BROADCAST_CASES = [
+    (*case[:2], True, case[2]) for case in VALID_BROADCAST_CASES
+] + [
+    (*case[:2], False, case[2]) for case in INVALID_BROADCAST_CASES
+]
+
+@pytest.mark.parametrize(
+    "a, b",
+    [case[:2] for case in ALL_BROADCAST_CASES],
+    ids=[case[2] for case in ALL_BROADCAST_CASES],
+)
+def test_can_be_broadcasted(
+        a: torch.Tensor, b: torch.Tensor
+) -> None:
+  actual = can_be_broadcasted(a, b)
+  if actual:
+      # Must NOT raise an exception when can be broadcasted
+      try:
+          torch.broadcast_tensors(a, b)
+      except RuntimeError as exc:
+          pytest.fail(f"can_be_broadcasted returned True, but torch.broadcast_tensors raised: {exc}")
+  else:
+      # MUST raise RuntimeError when not expandable
+      with pytest.raises(RuntimeError):
+        torch.broadcast_tensors(a, b)
 
 
 @pytest.mark.parametrize(
