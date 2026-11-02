@@ -5,7 +5,7 @@ from assignments.maman11.maman11 import _can_be_expanded, my_expand_as, can_be_b
 
 
 VALID_EXPAND_CASES = [
-    # (input_tensor, target_tensor, expected_output, case_id)
+    # (input_tensor, target_tensor, case_id)
     (
         torch.tensor([1]),
         torch.tensor([3, 2]),
@@ -121,6 +121,7 @@ def test_my_expand_as_incompatible_shapes(source: torch.Tensor, target: torch.Te
 
 
 VALID_BROADCAST_CASES = [
+  # (tensor A, tensor B, case_id)
   (
       torch.tensor([1]),
       torch.tensor([[11, 12, 13], [21, 22, 23]]),
@@ -199,7 +200,7 @@ def test_can_be_broadcasted(
   if actual_are_compatible:
       # Must NOT raise an exception when can be broadcasted
       try:
-          expected = torch.broadcast_tensors(a, b)
+          torch.broadcast_tensors(a, b)
       except RuntimeError as exc:
           pytest.fail(f"can_be_broadcasted returned True, but torch.broadcast_tensors raised: {exc}")
   else:
@@ -209,44 +210,9 @@ def test_can_be_broadcasted(
 
 
 @pytest.mark.parametrize(
-    ("a", "b"),
-    [
-        pytest.param(
-            torch.tensor([1]),
-            torch.tensor([[11, 12, 13], [21, 22, 23]]),
-            id="1d_scalar_like_with_2d",
-        ),
-        pytest.param(
-            torch.tensor(5),
-            torch.tensor([1, 2, 3]),
-            id="0d_scalar_with_1d",
-        ),
-        pytest.param(
-            torch.tensor(7),
-            torch.tensor(8),
-            id="two_0d_scalars",
-        ),
-        pytest.param(
-            torch.tensor([[1, 2], [3, 4]]),
-            torch.tensor([[5, 6], [7, 8]]),
-            id="identical_shapes",
-        ),
-        pytest.param(
-            torch.tensor([[1, 2, 3]]),
-            torch.tensor([[4], [5]]),
-            id="row_and_column_vectors",
-        ),
-        pytest.param(
-            torch.tensor([10, 20, 30]),
-            torch.tensor([[1, 2, 3], [4, 5, 6]]),
-            id="rank_extension_1d_with_2d",
-        ),
-        pytest.param(
-            torch.arange(6).reshape(2, 1, 3),
-            torch.arange(4).reshape(1, 4, 1),
-            id="higher_dimensional_expansion",
-        ),
-    ],
+    "a, b",
+    [case[:2] for case in VALID_BROADCAST_CASES],
+    ids=[case[2] for case in VALID_BROADCAST_CASES],
 )
 def test_my_broadcast_valid_cases(a: torch.Tensor, b: torch.Tensor) -> None:
     expected_a, expected_b = torch.broadcast_tensors(a, b)
@@ -257,29 +223,9 @@ def test_my_broadcast_valid_cases(a: torch.Tensor, b: torch.Tensor) -> None:
 
 
 @pytest.mark.parametrize(
-    ("a", "b"),
-    [
-        pytest.param(
-            torch.tensor([1, 2]),
-            torch.tensor([1, 2, 3]),
-            id="incompatible_trailing_dims",
-        ),
-        pytest.param(
-            torch.zeros(2, 3),
-            torch.zeros(2, 4),
-            id="incompatible_inner_dims",
-        ),
-        pytest.param(
-            torch.zeros(3, 2),
-            torch.zeros(4, 2),
-            id="incompatible_leading_dims",
-        ),
-        pytest.param(
-            torch.zeros(2, 3, 4),
-            torch.zeros(2, 5, 4),
-            id="multidimensional_mismatch",
-        ),
-    ],
+    "a, b",
+    [case[:2] for case in INVALID_BROADCAST_CASES],
+    ids=[case[2] for case in INVALID_BROADCAST_CASES],
 )
 def test_my_broadcast_invalid_cases(a: torch.Tensor, b: torch.Tensor) -> None:
     with pytest.raises((RuntimeError, ValueError)):
