@@ -1,6 +1,7 @@
+import pytest
 import torch
 
-from assignments.maman11.maman11 import can_be_expanded, my_expand_as, can_be_broadcasted
+from assignments.maman11.maman11 import can_be_expanded, my_expand_as, can_be_broadcasted, my_broadcast
 
 
 def test_can_be_expanded():
@@ -115,3 +116,93 @@ def test_can_be_broadcasted():
       assert status == expected_broadcastable, f"{msg}: expected status {expected_broadcastable}, got {status}"
       assert shape == expected_shape, f"{msg}: expected shape {expected_shape}, got {shape}"
   pass
+
+
+def test_my_broadcast_valid_cases():
+    test_cases = [
+        # 1. 1D scalar-like tensor with 2D tensor
+        (
+            torch.tensor([1]),
+            torch.tensor([[11, 12, 13], [21, 22, 23]]),
+            torch.tensor([[1, 1, 1], [1, 1, 1]]),
+            torch.tensor([[11, 12, 13], [21, 22, 23]]),
+        ),
+        # 2. 0D scalar tensors
+        (
+            torch.tensor(5),
+            torch.tensor([1, 2, 3]),
+            torch.tensor([5, 5, 5]),
+            torch.tensor([1, 2, 3]),
+        ),
+        # 3. Two 0D scalar tensors
+        (
+            torch.tensor(7),
+            torch.tensor(8),
+            torch.tensor(7),
+            torch.tensor(8),
+        ),
+        # 4. Identical shapes (no expansion needed)
+        (
+            torch.tensor([[1, 2], [3, 4]]),
+            torch.tensor([[5, 6], [7, 8]]),
+            torch.tensor([[1, 2], [3, 4]]),
+            torch.tensor([[5, 6], [7, 8]]),
+        ),
+        # 5. Row vector (1, N) with Column vector (M, 1) -> (M, N)
+        (
+            torch.tensor([[1, 2, 3]]),
+            torch.tensor([[4], [5]]),
+            torch.tensor([[1, 2, 3], [1, 2, 3]]),
+            torch.tensor([[4, 4, 4], [5, 5, 5]]),
+        ),
+        # 6. Rank extension: 1D (3,) with 2D (2, 3) -> prepend dimension to (1, 3) then broadcast
+        (
+            torch.tensor([10, 20, 30]),
+            torch.tensor([[1, 2, 3], [4, 5, 6]]),
+            torch.tensor([[10, 20, 30], [10, 20, 30]]),
+            torch.tensor([[1, 2, 3], [4, 5, 6]]),
+        ),
+        # 7. Higher dimension expansion: (2, 1, 3) with (1, 4, 1) -> (2, 4, 3)
+        (
+            torch.arange(6).reshape(2, 1, 3),
+            torch.arange(4).reshape(1, 4, 1),
+            torch.arange(6).reshape(2, 1, 3).expand(2, 4, 3),
+            torch.arange(4).reshape(1, 4, 1).expand(2, 4, 3),
+        ),
+        # 8. Empty tensor with 0-sized dimension: (0, 1) with (3, 1) -> (0, 1)
+        (
+            torch.empty((0, 1)),
+            torch.tensor([[1], [2], [3]]),
+            torch.empty((0, 1)),
+            torch.empty((0, 1)),
+        ),
+    ]
+
+    for A, B, expected_A, expected_B in test_cases:
+        actual_A, actual_B = my_broadcast(A, B)
+
+        # Validate values and shapes match expectations
+        torch.testing.assert_close(actual_A, expected_A)
+        torch.testing.assert_close(actual_B, expected_B)
+
+        # Validate consistency with native PyTorch broadcasting logic
+        torch_exp_A, torch_exp_B = torch.broadcast_tensors(A, B)
+        torch.testing.assert_close(actual_A, torch_exp_A)
+        torch.testing.assert_close(actual_B, torch_exp_B)
+
+
+def test_my_broadcast_invalid_cases():
+    invalid_pairs = [
+        # Incompatible trailing dimensions: (2,) vs (3,)
+        (torch.tensor([1, 2]), torch.tensor([1, 2, 3])),
+        # Incompatible inner dimensions: (2, 3) vs (2, 4)
+        (torch.zeros(2, 3), torch.zeros(2, 4)),
+        # Incompatible leading dimensions after right-alignment: (3, 2) vs (4, 2)
+        (torch.zeros(3, 2), torch.zeros(4, 2)),
+        # Multi-dimensional mismatch: (2, 3, 4) vs (2, 5, 4)
+        (torch.zeros(2, 3, 4), torch.zeros(2, 5, 4)),
+    ]
+
+    for A, B in invalid_pairs:
+        with pytest.raises(RuntimeError):
+            my_broadcast(A, B)
