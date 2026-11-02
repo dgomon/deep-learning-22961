@@ -52,41 +52,48 @@ def my_expand_as(input: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
         raise RuntimeError
 
     # Clone to avoid in-place modification of input
-    C = input.clone()
+    c = input.clone()
 
     # Add singleton dimensions at the beginning until ranks match
-    while C.dim() < other.dim():
-        C = C.unsqueeze(0)
+    while c.dim() < other.dim():
+        c = c.unsqueeze(0)
 
-    for dim in range(C.dim()):
-        if C.shape[dim] == 1 and other.shape[dim] > 1:
+    for dim in range(c.dim()):
+        if c.shape[dim] == 1 and other.shape[dim] > 1:
             # Replicate along this axis by concatenating copies
-            C = torch.cat([C] * other.shape[dim], dim=dim)
+            c = torch.cat([c] * other.shape[dim], dim=dim)
 
-    return C
+    return c
 
 
-def can_be_broadcasted(A: torch.Tensor, B: torch.Tensor) -> tuple[bool, torch.Size | None]:
-    r"""Determine if tensors A and B can be broadcasted together.
+def can_be_broadcasted(a: torch.Tensor, b: torch.Tensor) -> tuple[bool, torch.Size | None]:
+    r"""Checks whether two tensors are broadcastable according to PyTorch rules.
 
-      Returns (True, broadcast_shape) if compatible, otherwise (False, None).
-    """
+        Args:
+            a: First input tensor.
+            b: Second input tensor.
 
-    C = [0] * max(len(A.shape), len(B.shape))
+        Returns:
+            A tuple `(is_broadcastable, broadcast_shape)`:
+            - `is_broadcastable`: `True` if tensors can be broadcast together, `False` otherwise.
+            - `broadcast_shape`: The resulting `torch.Size` if broadcastable, or `None`.
+        """
 
-    for i in range(1, min(A.dim(), B.dim()) + 1):
-        a, b = A.shape[-i], B.shape[-i]
+    c = [0] * max(len(a.shape), len(b.shape))
+
+    for i in range(1, min(a.dim(), b.dim()) + 1):
+        a, b = a.shape[-i], b.shape[-i]
         if (a != b) and (a != 1) and (b != 1):
             return False, None
         # b may be 0 here, thus not using max()
-        C[-i] = a if b == 1 else b
+        c[-i] = a if b == 1 else b
 
-    diff = A.dim() - B.dim()
+    diff = a.dim() - b.dim()
     if diff != 0:
-        longer = A.shape if diff > 0 else B.shape
-        C[:abs(diff)] = longer[:abs(diff)]
+        longer = a.shape if diff > 0 else b.shape
+        c[:abs(diff)] = longer[:abs(diff)]
 
-    return True, torch.Size(C)
+    return True, torch.Size(c)
 
 
 def _broadcast_to(t: torch.Tensor, target_shape: torch.Size) -> torch.Tensor:
