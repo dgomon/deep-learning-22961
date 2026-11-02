@@ -1,70 +1,146 @@
+from collections.abc import Sequence
+
 import pytest
 import torch
 
 from assignments.maman11.maman11 import can_be_expanded, my_expand_as, can_be_broadcasted, my_broadcast
 
 
-def test_can_be_expanded():
-  data = (
-    ((1,), (1,), True),
-    ((1,), (5,), True),
-    ((5,), (1,), False),
-    ((2,), (5, 2,), True),
-    ((1,), (5, 2,), True),
-    ((3,), (5, 2,), False),
-    ((1, 2), (5, 2,), True),
-    ((5, 2), (5, 2,), True),
-    ((1, 3), (3, 1,), False),
-    ((1, 3), (3, 3,), True),
-    ((5, 2), (8, 5, 2,), True),
-  )
+@pytest.mark.parametrize(
+    ("shape_a", "shape_b", "expected"),
+    [
+        # Identical shapes
+        ((1,), (1,), True),
+        ((5, 2), (5, 2), True),
+        # Singleton expansions
+        ((1,), (5,), True),
+        ((1,), (5, 2), True),
+        ((1, 2), (5, 2), True),
+        ((1, 3), (3, 3), True),
+        # Prepending leading singleton/new dimensions
+        ((2,), (5, 2), True),
+        ((5, 2), (8, 5, 2), True),
+        # Incompatible contractions or mismatches
+        ((5,), (1,), False),
+        ((3,), (5, 2), False),
+        ((1, 3), (3, 1), False),
+    ],
+    ids=[
+        "1D_same",
+        "2D_same",
+        "1D_expand_to_larger",
+        "1D_expand_to_2D_singleton",
+        "2D_expand_row",
+        "2D_expand_col_and_row",
+        "1D_prepend_dim_match",
+        "2D_prepend_dim_match",
+        "1D_cannot_contract",
+        "1D_dim_mismatch",
+        "2D_shape_transposition_mismatch",
+    ],
+)
+def test_can_be_expanded(
+    shape_a: Sequence[int], shape_b: Sequence[int], expected: bool
+) -> None:
+    a = torch.empty(shape_a)
+    b = torch.empty(shape_b)
 
-  for entry in data:
-    A = torch.empty(entry[0])
-    B = torch.empty(entry[1])
+    assert can_be_expanded(a, b) == expected
 
-    assert can_be_expanded(A, B) == entry[2]
-
-
-def test_expand():
-  data = (
+VALID_EXPAND_CASES = [
+    # (input_tensor, target_tensor, expected_output, case_id)
     (
-      torch.tensor([1]),
-      torch.tensor([3, 2]),
-      torch.tensor([1, 1],)
+        torch.tensor([1]),
+        torch.tensor([3, 2]),
+        torch.tensor([1, 1]),
+        "1d_singleton_to_1d",
     ),
     (
-      torch.tensor([5, 7]),
-      torch.tensor([3, 2]),
-      torch.tensor([5, 7],)
+        torch.tensor([5, 7]),
+        torch.tensor([3, 2]),
+        torch.tensor([5, 7]),
+        "1d_same_shape",
     ),
     (
-      torch.tensor([5, 7]),
-      torch.tensor([[1, 2],
-                    [3, 4]]),
-      torch.tensor([[5, 7],
-                    [5, 7]]),
+        torch.tensor([5, 7]),
+        torch.tensor([[1, 2], [3, 4]]),
+        torch.tensor([[5, 7], [5, 7]]),
+        "1d_to_2d_row_broadcast",
     ),
     (
-      torch.tensor([1]),
-      torch.tensor([[3, 2],
-                    [4, 6]]),
-      torch.tensor([[1, 1],
-                    [1, 1]]),
+        torch.tensor([1]),
+        torch.tensor([[3, 2], [4, 6]]),
+        torch.tensor([[1, 1], [1, 1]]),
+        "1d_singleton_to_2d",
     ),
     (
-      torch.tensor([97, 17, 2]),
-      torch.tensor([[11, 12, 13],
-                   [21, 22, 23],
-                   [31, 32, 33]]),
-      torch.tensor([[97, 17,  2],
-                    [97, 17,  2],
-                    [97, 17,  2]])
+        torch.tensor([97, 17, 2]),
+        torch.tensor([[11, 12, 13], [21, 22, 23], [31, 32, 33]]),
+        torch.tensor([[97, 17, 2], [97, 17, 2], [97, 17, 2]]),
+        "1d_to_square_2d",
     ),
-  )
+    # --- Augmented Cases ---
+    (
+        torch.tensor(42),
+        torch.tensor([[1, 2], [3, 4]]),
+        torch.tensor([[42, 42], [42, 42]]),
+        "0d_scalar_to_2d",
+    ),
+    (
+        torch.tensor([[1], [2]]),
+        torch.tensor([[0, 0, 0], [0, 0, 0]]),
+        torch.tensor([[1, 1, 1], [2, 2, 2]]),
+        "2d_column_singleton_to_2d",
+    ),
+    (
+        torch.tensor([1, 2]),
+        torch.empty(2, 2, 2),
+        torch.tensor([[[1, 2], [1, 2]], [[1, 2], [1, 2]]]),
+        "1d_to_3d_expansion",
+    ),
+]
 
-  for entry in data:
-    torch.testing.assert_close(my_expand_as(entry[0], entry[1]), entry[2])
+INVALID_EXPAND_CASES = [
+    # Incompatible trailing dimension (2 != 3)
+    (
+        torch.tensor([1, 2]),
+        torch.tensor([1, 2, 3]),
+        "mismatched_trailing_dim",
+    ),
+    # Attempting to expand a non-singleton dimension (2 -> 3)
+    (
+        torch.tensor([[1, 2], [3, 4]]),
+        torch.empty(3, 2),
+        "incompatible_leading_dim",
+    ),
+    # Input has more dimensions than target
+    (
+        torch.tensor([[1, 2]]),
+        torch.tensor([1, 2]),
+        "input_higher_dim_than_target",
+    ),
+]
+
+@pytest.mark.parametrize(
+    "source, target, expected",
+    [case[:3] for case in VALID_EXPAND_CASES],
+    ids=[case[3] for case in VALID_EXPAND_CASES],
+)
+def test_my_expand_as_valid(source: torch.Tensor, target: torch.Tensor, expected: torch.Tensor):
+    result = my_expand_as(source, target)
+
+    assert result.shape == target.shape
+    torch.testing.assert_close(result, expected)
+
+
+@pytest.mark.parametrize(
+    "source, target",
+    [case[:2] for case in INVALID_EXPAND_CASES],
+    ids=[case[2] for case in INVALID_EXPAND_CASES],
+)
+def test_my_expand_as_incompatible_shapes(source: torch.Tensor, target: torch.Tensor):
+    with pytest.raises(RuntimeError):
+      my_expand_as(source, target)
 
 
 def test_can_be_broadcasted():
@@ -170,13 +246,6 @@ def test_my_broadcast_valid_cases():
             torch.arange(4).reshape(1, 4, 1),
             torch.arange(6).reshape(2, 1, 3).expand(2, 4, 3),
             torch.arange(4).reshape(1, 4, 1).expand(2, 4, 3),
-        ),
-        # 8. Empty tensor with 0-sized dimension: (0, 1) with (3, 1) -> (0, 1)
-        (
-            torch.empty((0, 1)),
-            torch.tensor([[1], [2], [3]]),
-            torch.empty((0, 1)),
-            torch.empty((0, 1)),
         ),
     ]
 

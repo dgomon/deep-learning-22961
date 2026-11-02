@@ -64,7 +64,6 @@ def can_be_broadcasted(A: torch.Tensor, B: torch.Tensor) -> tuple[bool, torch.Si
 
   return True, torch.Size(C)
 
-
 def _broadcast_to(t: torch.Tensor, target_shape: torch.Size) -> torch.Tensor:
     res = t.clone()
 
