@@ -25,6 +25,7 @@ def test_can_be_expanded():
 
     assert can_be_expanded(A, B) == entry[2]
 
+
 def test_expand():
   data = (
     (
@@ -64,6 +65,7 @@ def test_expand():
 
   for entry in data:
     torch.testing.assert_close(my_expand_as(entry[0], entry[1]), entry[2])
+
 
 def test_can_be_broadcasted():
   data = (
