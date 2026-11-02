@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from assignments.maman11.maman11 import can_be_expanded, my_expand_as, can_be_broadcasted, my_broadcast
+from assignments.maman11.maman11 import _can_be_expanded, my_expand_as, can_be_broadcasted, my_broadcast
 
 
 VALID_EXPAND_CASES = [
@@ -84,7 +84,7 @@ ALL_EXPAND_CASES = [
 def test_can_be_expanded(
     source: torch.Tensor, target: torch.Tensor,
 ) -> None:
-  actual = can_be_expanded(source, target)
+  actual = _can_be_expanded(source, target)
   if actual:
       # Must NOT raise an exception when expandable
       try:
@@ -168,7 +168,7 @@ def get_expected_broadcast(shape_a, shape_b):
         ),
     ],
 )
-def test_my_broadcast_valid_cases(a, b):
+def test_my_broadcast_valid_cases(a: torch.Tensor, b: torch.Tensor) -> None:
     expected_a, expected_b = torch.broadcast_tensors(a, b)
     actual_a, actual_b = my_broadcast(a, b)
 
@@ -201,6 +201,6 @@ def test_my_broadcast_valid_cases(a, b):
         ),
     ],
 )
-def test_my_broadcast_invalid_cases(a, b):
+def test_my_broadcast_invalid_cases(a: torch.Tensor, b: torch.Tensor) -> None:
     with pytest.raises((RuntimeError, ValueError)):
         my_broadcast(a, b)
