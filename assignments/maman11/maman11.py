@@ -1,4 +1,5 @@
 import torch
+from sympy import resultant
 
 
 def _can_expand_to(source: torch.Tensor, target: torch.Tensor) -> bool:
@@ -130,13 +131,26 @@ def _broadcast_to(t: torch.Tensor, target_shape: torch.Size) -> torch.Tensor:
     return res
 
 
-def my_broadcast(A: torch.Tensor, B: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-    possible, size_C = can_be_broadcasted(A, B)
+def my_broadcast(a: torch.Tensor, b: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """Broadcast two tensors to a common compatible shape.
+
+        Args:
+            a: First input tensor.
+            b: Second input tensor.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: A tuple containing both tensors
+            broadcasted to the shared target shape.
+
+        Raises:
+            RuntimeError: If shapes of `a` and `b` are incompatible for broadcasting.
+        """
+    possible, size_c = can_be_broadcasted(a, b)
 
     if not possible:
-        raise RuntimeError(f"The size of tensor A {A.shape} must match the size of tensor B {B.shape}")
+        raise RuntimeError(f"The size of tensor A {a.shape} must match the size of tensor B {b.shape}")
 
-    result_A = _broadcast_to(A, size_C)
-    result_B = _broadcast_to(B, size_C)
+    result_a = _broadcast_to(a, size_c)
+    result_b = _broadcast_to(b, size_c)
 
-    return result_A, result_B
+    return result_a, result_b
