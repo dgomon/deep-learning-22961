@@ -1,6 +1,6 @@
 import torch
 
-def can_be_expanded(A: torch.Tensor, B: torch.Tensor) -> bool:
+def _can_be_expanded(A: torch.Tensor, B: torch.Tensor) -> bool:
   r"""
     Returns True iff A can be expanded into B
   """
@@ -25,7 +25,7 @@ def my_expand_as(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
   r"""
     Expands A into dimensions of B
   """
-  if not can_be_expanded(A, B):
+  if not _can_be_expanded(A, B):
     raise RuntimeError
 
   # Clone to avoid in-place modification of A
