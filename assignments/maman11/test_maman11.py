@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from assignments.maman11.maman11 import _can_be_expanded, my_expand_as, can_be_broadcasted, my_broadcast
+from assignments.maman11.maman11 import _can_expand_to, my_expand_as, can_be_broadcasted, my_broadcast
 
 VALID_EXPAND_CASES = [
     # (input_tensor, target_tensor, case_id)
@@ -84,7 +84,7 @@ ALL_EXPAND_CASES = [
 def test_can_be_expanded(
         source: torch.Tensor, target: torch.Tensor,
 ) -> None:
-    actual = _can_be_expanded(source, target)
+    actual = _can_expand_to(source, target)
     if actual:
         # Must NOT raise an exception when expandable
         try:
