@@ -33,27 +33,27 @@ def _can_expand_to(source: torch.Tensor, target: torch.Tensor) -> bool:
     return True
 
 
-def my_expand_as(input: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
+def my_expand_as(input_tensor: torch.Tensor, other: torch.Tensor) -> torch.Tensor:
     r"""Expand `input` to the same size as `other`.
 
         Equivalent to calling an explicit tensor expansion along singleton
         dimensions to match `other.size()`.
 
         Args:
-            input (Tensor): the input tensor.
+            input_tensor (Tensor): the input tensor.
             other (Tensor): the tensor whose size should be matched.
 
         Returns:
             Tensor: A new tensor matching `other.shape`.
 
         Raises:
-            RuntimeError: If `input` cannot be expanded to the size of `other`.
+            RuntimeError: If `input_tensor` cannot be expanded to the size of `other`.
         """
-    if not _can_expand_to(input, other):
+    if not _can_expand_to(input_tensor, other):
         raise RuntimeError
 
     # Clone to avoid in-place modification of input
-    c = input.clone()
+    c = input_tensor.clone()
 
     # Add singleton dimensions at the beginning until ranks match
     while c.dim() < other.dim():
