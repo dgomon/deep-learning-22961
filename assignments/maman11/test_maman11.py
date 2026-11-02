@@ -136,57 +136,64 @@ def test_my_expand_as_incompatible_shapes(source: torch.Tensor, target: torch.Te
       my_expand_as(source, target)
 
 
+import pytest
+import torch
+
+
+def get_expected_broadcast(shape_a, shape_b):
+    try:
+        expected_shape = tuple(torch.broadcast_shapes(shape_a, shape_b))
+        return True, expected_shape
+    except RuntimeError:
+        return False, None
+
+
 def test_can_be_broadcasted():
-  data = (
-    # --- 1. Scalars / 0-D Tensors () ---
-    # Broadcast with scalar should retain the other shape unchanged
-    (((), ()), (True, ())),
-    (((), (1,)), (True, (1,))),
-    (((3, 4), ()), (True, (3, 4))),
-    (((), (2, 5, 1)), (True, (2, 5, 1))),
+    test_shapes = (
+        # --- 1. Scalars / 0-D Tensors () ---
+        ((), ()),
+        ((), (1,)),
+        ((3, 4), ()),
+        ((), (2, 5, 1)),
+        # --- 2. Zero-sized / Empty dimensions (size 0) ---
+        ((0,), (0,)),
+        ((0,), (1,)),
+        ((1,), (0,)),
+        ((0,), (3,)),
+        ((2, 0, 1), (1, 1, 4)),
+        ((2, 0, 3), (2, 1, 4)),
+        # --- 3. Mismatches at non-trailing positions ---
+        ((2, 3), (4, 3)),
+        ((2, 5, 4), (3, 5, 4)),
+        ((2, 1, 4), (3, 5, 4)),
+        ((5, 1, 2), (5, 3, 4)),
+        # --- 4. Alternating / Cross-broadcasting ---
+        ((1, 4, 1, 6), (3, 1, 5, 1)),
+        ((2, 1, 2, 1), (1, 3, 1, 3)),
+        # --- 5. High rank difference ---
+        ((4,), (2, 1, 3, 1, 4)),
+        ((1,), (2, 3, 4, 5, 6)),
+        ((5,), (2, 3, 4, 5, 6)),
+        # --- 6. All ones (unit tensors) ---
+        ((1, 1, 1), (1, 1, 1)),
+        ((1, 1, 1), (4, 5)),
+    )
 
-    # --- 2. Zero-sized / Empty dimensions (size 0) ---
-    # 0 can broadcast with 1 or 0, but not with n > 1
-    (((0,), (0,)), (True, (0,))),
-    (((0,), (1,)), (True, (0,))),
-    (((1,), (0,)), (True, (0,))),
-    (((0,), (3,)), (False, None)),
-    (((2, 0, 1), (1, 1, 4)), (True, (2, 0, 4))),
-    (((2, 0, 3), (2, 1, 4)), (False, None)),
+    for shape_a, shape_b in test_shapes:
+        expected_broadcastable, expected_shape = get_expected_broadcast(shape_a, shape_b)
 
-    # # --- 3. Mismatches at non-trailing positions ---
-    # # Trailing match, mismatch occurs at inner dimensions
-    (((2, 3), (4, 3)), (False, None)),
-    (((2, 5, 4), (3, 5, 4)), (False, None)),
-    (((2, 1, 4), (3, 5, 4)), (False, None)),
-    (((5, 1, 2), (5, 3, 4)), (False, None)),
-    #
-    # # --- 4. Alternating / Cross-broadcasting (both tensors expand) ---
-    # # Multiple alternating singleton dimensions across higher ranks
-    (((1, 4, 1, 6), (3, 1, 5, 1)), (True, (3, 4, 5, 6))),
-    (((2, 1, 2, 1), (1, 3, 1, 3)), (True, (2, 3, 2, 3))),
-    #
-    # # --- 5. High rank difference ---
-    # # Significant dimensionality gap (e.g., 1D vs 5D)
-    (((4,), (2, 1, 3, 1, 4)), (True, (2, 1, 3, 1, 4))),
-    (((1,), (2, 3, 4, 5, 6)), (True, (2, 3, 4, 5, 6))),
-    (((5,), (2, 3, 4, 5, 6)), (False, None)),
-    # #
-    # # # --- 6. All ones (unit tensors) ---
-    (((1, 1, 1), (1, 1, 1)), (True, (1, 1, 1))),
-    (((1, 1, 1), (4, 5)), (True, (1, 4, 5))),
-  )
+        A = torch.empty(shape_a)
+        B = torch.empty(shape_b)
 
-  for (shape_a, shape_b), (expected_broadcastable, expected_shape) in data:
-      A = torch.empty(shape_a)
-      B = torch.empty(shape_b)
+        status, shape = can_be_broadcasted(A, B)
+        msg = f"Failed for shapes {shape_a} and {shape_b}"
 
-      status, shape = can_be_broadcasted(A, B)
-      msg = f"Failed for shapes {shape_a} and {shape_b}"
-
-      assert status == expected_broadcastable, f"{msg}: expected status {expected_broadcastable}, got {status}"
-      assert shape == expected_shape, f"{msg}: expected shape {expected_shape}, got {shape}"
-  pass
+        assert (
+            status == expected_broadcastable
+        ), f"{msg}: expected status {expected_broadcastable}, got {status}"
+        assert (
+            shape == expected_shape
+        ), f"{msg}: expected shape {expected_shape}, got {shape}"
 
 
 def test_my_broadcast_valid_cases():
