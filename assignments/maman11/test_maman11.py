@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import pytest
 import torch
 
@@ -128,52 +130,49 @@ def get_expected_broadcast(shape_a, shape_b):
         return False, None
 
 
-def test_can_be_broadcasted():
-    test_shapes = (
-        # --- 1. Scalars / 0-D Tensors () ---
-        ((), ()),
-        ((), (1,)),
-        ((3, 4), ()),
-        ((), (2, 5, 1)),
-        # --- 2. Zero-sized / Empty dimensions (size 0) ---
-        ((0,), (0,)),
-        ((0,), (1,)),
-        ((1,), (0,)),
-        ((0,), (3,)),
-        ((2, 0, 1), (1, 1, 4)),
-        ((2, 0, 3), (2, 1, 4)),
-        # --- 3. Mismatches at non-trailing positions ---
-        ((2, 3), (4, 3)),
-        ((2, 5, 4), (3, 5, 4)),
-        ((2, 1, 4), (3, 5, 4)),
-        ((5, 1, 2), (5, 3, 4)),
-        # --- 4. Alternating / Cross-broadcasting ---
-        ((1, 4, 1, 6), (3, 1, 5, 1)),
-        ((2, 1, 2, 1), (1, 3, 1, 3)),
-        # --- 5. High rank difference ---
-        ((4,), (2, 1, 3, 1, 4)),
-        ((1,), (2, 3, 4, 5, 6)),
-        ((5,), (2, 3, 4, 5, 6)),
-        # --- 6. All ones (unit tensors) ---
-        ((1, 1, 1), (1, 1, 1)),
-        ((1, 1, 1), (4, 5)),
-    )
+TEST_SHAPES = (
+    # 1. Scalars / 0-D Tensors
+    pytest.param((), (), id="scalar_with_scalar"),
+    pytest.param((), (1,), id="scalar_with_1d_unit"),
+    pytest.param((3, 4), (), id="2d_with_scalar"),
+    pytest.param((), (2, 5, 1), id="scalar_with_3d"),
+    # 2. Zero-sized / Empty dimensions (size 0)
+    pytest.param((0,), (0,), id="zero_with_zero"),
+    pytest.param((0,), (1,), id="zero_with_unit"),
+    pytest.param((1,), (0,), id="unit_with_zero"),
+    pytest.param((0,), (3,), id="zero_with_incompatible_dim"),
+    pytest.param((2, 0, 1), (1, 1, 4), id="zero_dim_broadcast_compatible"),
+    pytest.param((2, 0, 3), (2, 1, 4), id="zero_dim_broadcast_incompatible"),
+    # 3. Mismatches at non-trailing positions
+    pytest.param((2, 3), (4, 3), id="leading_dim_mismatch_2d"),
+    pytest.param((2, 5, 4), (3, 5, 4), id="leading_dim_mismatch_3d"),
+    pytest.param((2, 1, 4), (3, 5, 4), id="leading_dim_mismatch_with_unit"),
+    pytest.param((5, 1, 2), (5, 3, 4), id="trailing_dim_mismatch"),
+    # 4. Alternating / Cross-broadcasting
+    pytest.param((1, 4, 1, 6), (3, 1, 5, 1), id="cross_broadcast_4d_valid"),
+    pytest.param((2, 1, 2, 1), (1, 3, 1, 3), id="cross_broadcast_4d_alternating"),
+    # 5. High rank difference
+    pytest.param((4,), (2, 1, 3, 1, 4), id="1d_to_5d_match"),
+    pytest.param((1,), (2, 3, 4, 5, 6), id="1d_unit_to_5d"),
+    pytest.param((5,), (2, 3, 4, 5, 6), id="1d_mismatch_trailing_5d"),
+    # 6. All ones (unit tensors)
+    pytest.param((1, 1, 1), (1, 1, 1), id="all_ones_same_rank"),
+    pytest.param((1, 1, 1), (4, 5), id="all_ones_different_rank"),
+)
 
-    for shape_a, shape_b in test_shapes:
-        expected_broadcastable, expected_shape = get_expected_broadcast(shape_a, shape_b)
 
-        A = torch.empty(shape_a)
-        B = torch.empty(shape_b)
+@pytest.mark.parametrize("shape_a, shape_b", TEST_SHAPES)
+def test_can_be_broadcasted(shape_a: Tuple[int, ...], shape_b: Tuple[int, ...]) -> None:
+    expected_status, expected_shape = get_expected_broadcast(shape_a, shape_b)
 
-        status, shape = can_be_broadcasted(A, B)
-        msg = f"Failed for shapes {shape_a} and {shape_b}"
+    # torch.empty on meta device avoids physical memory allocation
+    tensor_a = torch.empty(shape_a, device="meta")
+    tensor_b = torch.empty(shape_b, device="meta")
 
-        assert (
-            status == expected_broadcastable
-        ), f"{msg}: expected status {expected_broadcastable}, got {status}"
-        assert (
-            shape == expected_shape
-        ), f"{msg}: expected shape {expected_shape}, got {shape}"
+    status, shape = can_be_broadcasted(tensor_a, tensor_b)
+
+    assert status == expected_status
+    assert shape == expected_shape
 
 
 def test_my_broadcast_valid_cases():
