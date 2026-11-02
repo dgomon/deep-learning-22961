@@ -83,11 +83,11 @@ def can_be_broadcasted(a: torch.Tensor, b: torch.Tensor) -> tuple[bool, torch.Si
     c = [0] * max(len(a.shape), len(b.shape))
 
     for i in range(1, min(a.dim(), b.dim()) + 1):
-        a, b = a.shape[-i], b.shape[-i]
-        if (a != b) and (a != 1) and (b != 1):
+        dim_a, dim_b = a.shape[-i], b.shape[-i]
+        if (dim_a != dim_b) and (dim_a != 1) and (dim_b != 1):
             return False, None
         # b may be 0 here, thus not using max()
-        c[-i] = a if b == 1 else b
+        c[-i] = dim_a if dim_b == 1 else dim_b
 
     diff = a.dim() - b.dim()
     if diff != 0:
