@@ -1,20 +1,29 @@
 import torch
 
 
-def _can_be_expanded(A: torch.Tensor, B: torch.Tensor) -> bool:
-    r"""
-      Returns True iff A can be expanded into B
-    """
+def _can_expand_to(source: torch.Tensor, target: torch.Tensor) -> bool:
+    """Check whether a source tensor can be expanded to the shape of a target tensor.
 
-    index_A = A.dim() - 1
-    index_B = B.dim() - 1
+    Follows PyTorch broadcasting semantics: the source tensor must have fewer
+    than or equal dimensions compared to the target, and trailing dimensions
+    must either match the target's size or equal 1.
+
+    Args:
+        source: Tensor whose shape is evaluated for expansion.
+        target: Target tensor providing the desired output shape.
+
+    Returns:
+        bool: True if source.expand_as(target) is valid, False otherwise.
+    """
+    index_A = source.dim() - 1
+    index_B = target.dim() - 1
 
     if index_A > index_B:
         # A has more dimensions than B
         return False
 
     while index_A >= 0:
-        if A.shape[index_A] != 1 and A.shape[index_A] != B.shape[index_B]:
+        if source.shape[index_A] != 1 and source.shape[index_A] != target.shape[index_B]:
             # Current A's dimension can only be expanded if its length is 1 or its length matches that of B's
             return False
 
@@ -27,7 +36,7 @@ def my_expand_as(A: torch.Tensor, B: torch.Tensor) -> torch.Tensor:
     r"""
       Expands A into dimensions of B
     """
-    if not _can_be_expanded(A, B):
+    if not _can_expand_to(A, B):
         raise RuntimeError
 
     # Clone to avoid in-place modification of A
