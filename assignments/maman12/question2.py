@@ -8,28 +8,25 @@ class MyScalar:
         self.grad = grad
         self.parent = parent
 
-def plus(a: MyScalar, n: MyScalar) -> MyScalar:
+def plus(a, n):
     return MyScalar(a.value + n.value, 1, a)
 
-def mul(a: MyScalar, n: MyScalar) -> MyScalar:
+def mul(a, n):
     return MyScalar(a.value * n.value, n.value, a)
 
-def pow(a: MyScalar, n: MyScalar) -> MyScalar:
-    return MyScalar(a.value ** n.value, n.value * a.value ** (n.value - 1), a)
+def power(a, n):
+    return MyScalar(a.value ** n, n * a.value ** (n - 1), a)
 
-def cos(a: MyScalar) -> MyScalar:
+def cos(a):
     return MyScalar(cos(a.value), -1 * math.sin(a.value), a)
 
-def sin(a: MyScalar) -> MyScalar:
+def sin(a):
     return MyScalar(sin(a.value), math.cos(a.value), a)
 
-def exp(a: MyScalar) -> MyScalar:
+def exp(a):
     return MyScalar(math.exp(a.value), math.exp(a.value), a)
 
-def main():
-    pass
-
-def get_gradient(a: MyScalar) -> dict:
+def get_gradient(a) -> dict:
     if a.parent is None:
         return {a: 1}
 
@@ -37,6 +34,13 @@ def get_gradient(a: MyScalar) -> dict:
     x[a] = a.value * x[a.parent]
     return x
 
+def main():
+    a = MyScalar(2, 1, None)
+    b = power(a,2) #a^2
+    c = exp(b)
+    d = get_gradient(c)
+    print(d)
+    pass
 
 if __name__ == "__main__":
   main()
