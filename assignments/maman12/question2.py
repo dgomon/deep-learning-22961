@@ -29,5 +29,14 @@ def exp(a: MyScalar) -> MyScalar:
 def main():
     pass
 
+def get_gradient(a: MyScalar) -> dict:
+    if a.parent is None:
+        return {a: 1}
+
+    x = get_gradient(a.parent)
+    x[a] = a.value * x[a.parent]
+    return x
+
+
 if __name__ == "__main__":
   main()
