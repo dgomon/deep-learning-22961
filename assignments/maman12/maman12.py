@@ -1,7 +1,6 @@
 from matplotlib import pyplot as plt
 import torch
 
-
 def my_sampler(size, dist, requires_grad = False):
     # Convert dist list to tensor to parallelize calculations
     dist_tensor = torch.tensor(dist)
@@ -28,14 +27,14 @@ def my_sampler(size, dist, requires_grad = False):
 
 def run_b():
     size = 10_000
-    dist = torch.tensor([0.1, 0.2, 0.7])
-    result = my_sampler(size, [0.1, 0.2, 0.7], requires_grad = False)
+    dist = [0.1, 0.2, 0.7]
+    result = my_sampler(size, dist, requires_grad = False)
 
-    fig, axs = plt.subplots(1, 1, tight_layout=True)
-    axs.hist(result, bins=len(dist))
-
+    n = len(dist)
+    plt.hist(result, bins=[i - 0.5 for i in range(n + 1)], rwidth=0.8)
+    plt.xticks(range(n))
     plt.show()
-    pass
+
 
 def main():
     run_b()
