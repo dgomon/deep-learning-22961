@@ -1,26 +1,29 @@
 import torch
 
 
-# def my_sampler(size, dist, requires_grad = False):
+def my_sampler(size, dist, requires_grad = False):
+    # Sum of probabilities must be one and each element must be positive
+    assert (dist <= 0).sum() > 0 and dist.sum() == 1
 
-def verify_input(t: torch.Tensor) -> bool:
-    # every element is positive
-    if (t <= 0).sum() > 0 or t.sum() != 1:
-        return False
+    # Initialize result tensor to random values from U[0, 1]
+    result = torch.rand(size, requires_grad = requires_grad)
 
-    return True
+    # Allocate mask of boolean to track assignments to result
+    assigned = torch.empty_like(result, dtype = torch.bool)
 
-def foo():
-    t = torch.rand(20)
-    acc = 0.0
-    assigned = torch.empty_like(t, dtype = torch.bool)
-    dist = (0.33, 0.33, 0.34)
+    acc = 0.0 # Probability sum accumulator
     for i in range(len(dist)):
         acc += dist[i]
-        mask = (acc > t) & (~assigned)
-        t[mask] = i
+        # Mark entries whose accumulated probability exceeds threshold and that haven't been assigned yet
+        mask = (acc > result) & (~assigned)
+        result[mask] = i
         assigned[mask] = True
-    return t
+
+    return result
+
+
+def test_b():
+    n_repetitions = 10_000
 
 
 def main():
