@@ -13,34 +13,32 @@ def my_sampler(size, dist, requires_grad = False):
     result = torch.rand(size, requires_grad = requires_grad)
 
     # Allocate mask of boolean to track assignments to result
-    assigned = torch.empty_like(result, dtype = torch.bool)
+    assigned = torch.zeros_like(result, dtype = torch.bool)
 
-    acc = 0.0 # Probability sum accumulator
+    cdf = 0.0 # Probability sum accumulator
     for i in range(len(dist_tensor)):
-        acc += dist_tensor[i]
+        cdf += dist_tensor[i]
         # Mark entries whose accumulated probability exceeds threshold and that haven't been assigned yet
-        mask = (acc > result) & (~assigned)
+        mask = (cdf > result) & (~assigned)
         result[mask] = i
         assigned[mask] = True
 
     return result
 
 
-def test_b():
+def run_b():
     size = 10_000
     dist = torch.tensor([0.1, 0.2, 0.7])
     result = my_sampler(size, [0.1, 0.2, 0.7], requires_grad = False)
 
     fig, axs = plt.subplots(1, 1, tight_layout=True)
-
     axs.hist(result, bins=len(dist))
 
     plt.show()
+    pass
 
 def main():
-
-
-    test_b()
+    run_b()
     pass
 
 if __name__ == "__main__":
