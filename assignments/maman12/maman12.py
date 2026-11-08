@@ -3,6 +3,12 @@ import torch
 
 # def my_sampler(size, dist, requires_grad = False):
 
+def verify_input(t: torch.Tensor) -> bool:
+    # every element is positive
+    if (t <= 0).sum() > 0 or t.sum() != 1:
+        return False
+
+    return True
 
 def foo():
     t = torch.rand(20)
