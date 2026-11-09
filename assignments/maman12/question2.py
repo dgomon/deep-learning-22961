@@ -1,7 +1,5 @@
 from __future__ import annotations
-
 import math
-
 import torch
 
 
@@ -29,7 +27,7 @@ def cos(a):
 
 
 def sin(a):
-    return MyScalar(sin(a.value), math.cos(a.value), a)
+    return MyScalar(math.sin(a.value), math.cos(a.value), a)
 
 
 def exp(a):
@@ -50,22 +48,39 @@ def get_gradient(a) -> dict:
     return get_gradient_helper(a, 1.0)
 
 
-def test_get_gradient():
-    a = MyScalar(3.0, 1.0, None)
+def test_sequence1():
+    a = MyScalar(2.0, 1.0, None)
     a_tensor = torch.tensor(a.value, requires_grad=True)
 
-    b = pow(a, 2)
-    b_tensor = a_tensor ** 2
+    # Testing sequence:
+    # exp, sin, cos, pow, mul, plus
+
+    b = exp(a)
+    b_tensor = torch.exp(a_tensor)
     b_tensor.retain_grad()
 
-    c = pow(b, 4)
-    c_tensor = b_tensor ** 4
+    c = sin(b)
+    c_tensor = torch.sin(b_tensor)
     c_tensor.retain_grad()
 
-    c_tensor.backward()
-    gradients = get_gradient(c)
+    d = pow(c, 1.5)
+    d_tensor = torch.pow(c_tensor, 1.5)
+    d_tensor.retain_grad()
 
-    torch.testing.assert_close(gradients[a], a_tensor.grad.item())
-    torch.testing.assert_close(gradients[b], b_tensor.grad.item())
-    torch.testing.assert_close(gradients[c], c_tensor.grad.item())
-    pass
+    e = mul(d, 3.14)
+    e_tensor = d_tensor * 3.14
+    e_tensor.retain_grad()
+
+    f = plus(e, 5.12)
+    f_tensor = e_tensor + 5.12
+    f_tensor.retain_grad()
+
+    grads = get_gradient(f)
+    f_tensor.backward()
+
+    assert math.isclose(grads[a], a_tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
+    assert math.isclose(grads[b], b_tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
+    assert math.isclose(grads[c], c_tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
+    assert math.isclose(grads[d], d_tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
+    assert math.isclose(grads[e], e_tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
+    assert math.isclose(grads[f], f_tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
