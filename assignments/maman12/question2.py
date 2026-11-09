@@ -4,6 +4,7 @@ import torch
 
 
 class MyScalar:
+    """Scalar value with gradient and parent reference"""
     def __init__(self, value, grad, parent):
         self.value = value
         self.grad = grad
@@ -35,6 +36,7 @@ def exp(a):
 
 
 def get_gradient_helper(currentNode: MyScalar, acc_grad) -> dict:
+    """Recursively propagate accumulated gradients through the ancestor graph."""
     if currentNode.parent is None:
         return {currentNode: acc_grad}
 
@@ -45,6 +47,7 @@ def get_gradient_helper(currentNode: MyScalar, acc_grad) -> dict:
 
 
 def get_gradient(a) -> dict:
+    """Compute backward gradients for a scalar node and its computational graph."""
     return get_gradient_helper(a, 1.0)
 
 
