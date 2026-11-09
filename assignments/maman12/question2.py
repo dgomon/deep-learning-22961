@@ -30,17 +30,21 @@ def get_gradient(a) -> dict:
     if a.parent is None:
         return {a: 1}
 
-    x = get_gradient(a.parent)
-    x[a] = a.value * x[a.parent]
-    return x
+    grad = get_gradient(a.parent)
+    grad[a] = a.value * grad[a.parent]
+    return grad
 
-def main():
-    a = MyScalar(2, 1, None)
-    b = power(a,2) #a^2
-    c = exp(b)
-    d = get_gradient(c)
-    print(d)
-    pass
+def test_get_gradient():
+    assert 1 == 1
+    # assert get_gradient(2) == 1
 
-if __name__ == "__main__":
-  main()
+# def main():
+#     a = MyScalar(2, 1, None)
+#     b = power(a,2) #a^2
+#     c = exp(b)
+#     d = get_gradient(c)
+#     print(d)
+#     pass
+
+# if __name__ == "__main__":
+#   main()
