@@ -2,6 +2,8 @@ from matplotlib import pyplot as plt
 import torch
 
 def my_sampler(size, dist, requires_grad = False):
+    """Sample from a discrete categorical distribution using inverse transform sampling."""
+
     # Convert dist list to tensor to parallelize calculations
     dist_tensor = torch.tensor(dist)
 
@@ -25,7 +27,7 @@ def my_sampler(size, dist, requires_grad = False):
     return result
 
 
-def run_b():
+def test_b():
     size = 10_000
     dist = [0.1, 0.2, 0.7]
     result = my_sampler(size, dist, requires_grad = False)
@@ -35,10 +37,3 @@ def run_b():
     plt.xticks(range(n))
     plt.show()
 
-
-def main():
-    run_b()
-    pass
-
-if __name__ == "__main__":
-  main()
