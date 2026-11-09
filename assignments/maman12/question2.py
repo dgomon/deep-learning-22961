@@ -82,13 +82,9 @@ def test_sequence1():
     grads = get_gradient(g)
     g_tensor.backward()
 
-    assert math.isclose(grads[a], a_tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
-    assert math.isclose(grads[b], b_tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
-    assert math.isclose(grads[c], c_tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
-    assert math.isclose(grads[d], d_tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
-    assert math.isclose(grads[e], e_tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
-    assert math.isclose(grads[f], f_tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
-    assert math.isclose(grads[g], g_tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
+    for (scalar, tensor) in zip((a, b, c, d, e, f, g),
+                              (a_tensor, b_tensor, c_tensor, d_tensor, e_tensor, f_tensor, g_tensor)):
+        assert math.isclose(grads[scalar], tensor.grad.item(), rel_tol=1e-4, abs_tol=1e-4)
 
 def test_sequence2():
         a = MyScalar(1.5, 1.0, None)
