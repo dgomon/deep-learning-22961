@@ -34,7 +34,7 @@ class DataLoader:
         self.data[0].append("Class")
         for row in self.data[1:]:
             decile_index = self.find_decile_index(row[-1])
-            row.append(decile_index + 1)    # shift index range to [1..10] to adhere to table convention
+            row.append(decile_index + 1)    # 1-based decile labels [1..10]
 
 
 def main() -> None:
