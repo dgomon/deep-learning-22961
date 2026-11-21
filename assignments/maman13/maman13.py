@@ -12,12 +12,12 @@ filename = "diabetes.csv"
 def load_data(path: str | Path) -> list[list[str]]:
     with open(path, newline='') as csvfile:
         reader = csv.reader(csvfile, delimiter = '\t')
-        next(reader)
+        # next(reader)
         return list(reader)
 
 def calc_y_decile_ranges(data: list[list[str]]):
     # read y_values (still as strings) from all rows, skipping the first header row
-    y_values = [row[-1] for row in data[1:] if row]
+    y_values = [row[-1] for row in data if row]
     # convert y values to ints
     y_values = [int(y) for y in y_values]
     # 10 deciles correspond to percentiles 0, 10, 20, ..., 100
@@ -32,8 +32,8 @@ def find_decile_index(decile: int, decile_ranges: list[list[int]]) -> int:
     return 0
 
 def add_class_col(data, decile_ranges):
-    # data[0].append("Class")
-    for row in data:
+    data[0].append("Class")
+    for row in data[1:]:
         decile_index = find_decile_index(row[-1], decile_ranges)
         row.append(decile_index + 1)    # 1-based decile labels [1..10]
 
@@ -59,10 +59,10 @@ class DiabetesDataset(Dataset):
 
 def main() -> None:
     train_data = load_data(filename)
-    decile_ranges = calc_y_decile_ranges(train_data)
+    decile_ranges = calc_y_decile_ranges(train_data[1:])
     add_class_col(train_data, decile_ranges)
 
-    diabetes_dataset = DiabetesDataset(train_data, zero_indexed_labels=False)
+    diabetes_dataset = DiabetesDataset(train_data[1:], zero_indexed_labels=False)
 
     train_dataloader = DataLoader(diabetes_dataset,  batch_size=10)
 
