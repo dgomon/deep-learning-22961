@@ -50,12 +50,10 @@ class DiabetesDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
-        row = self.samples[idx]
+    def __getitem__(self, index: int) -> tuple[torch.Tensor, int]:
+        row = self.samples[index]
         features = torch.tensor([float(val) for val in row[:-1]], dtype=torch.float32)
-        label_val = int(row[-1]) - 1 if self.zero_indexed_labels else int(row[-1])
-        label = torch.tensor(label_val, dtype=torch.long)
-        return features, label
+        return features, index
 
 def main() -> None:
     train_data = load_data(filename)
@@ -64,11 +62,12 @@ def main() -> None:
 
     diabetes_dataset = DiabetesDataset(train_data[1:], zero_indexed_labels=False)
 
-    train_dataloader = DataLoader(diabetes_dataset,  batch_size=10)
+    train_dataloader = DataLoader(diabetes_dataset,  batch_size=1)
 
     iterator = iter(train_dataloader)
-    x = next(iterator)
-    print(x)
+    (features, index) = next(iterator)
+    print("index: ", index, " features ", features)
+
 
     pass
 
