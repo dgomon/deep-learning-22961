@@ -11,8 +11,7 @@ filename = "diabetes.csv"
 
 def load_data(path: str | Path) -> list[list[str]]:
     with open(path, newline='') as csvfile:
-        reader = csv.reader(csvfile, delimiter = '\t')
-        return list(reader)
+        return list(csv.reader(csvfile, delimiter = '\t'))
 
 
 def calc_y_decile_ranges(data: list[list[str]]):
