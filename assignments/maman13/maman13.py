@@ -15,6 +15,7 @@ def load_data(path: str | Path) -> list[list[str]]:
         # next(reader)
         return list(reader)
 
+
 def calc_y_decile_ranges(data: list[list[str]]):
     # read y_values (still as strings) from all rows
     y_values = [row[-1] for row in data if row]
@@ -25,17 +26,20 @@ def calc_y_decile_ranges(data: list[list[str]]):
     # Consecutive pairs (low, high) form the 10 decile ranges
     return list(zip(cutoffs[:-1], cutoffs[1:]))
 
+
 def find_decile_index(decile: int, decile_ranges: list[list[int]]) -> int:
     for i in range(len(decile_ranges)):
         if decile_ranges[i][0] <= int(decile) <= decile_ranges[i][1]:
             return i
     return 0
 
+
 def add_class_col(data, decile_ranges):
     data[0].append("Class")
     for row in data[1:]:
         decile_index = find_decile_index(row[-1], decile_ranges)
         row.append(decile_index)    # 0-based decile labels [0..9]
+
 
 class DiabetesDataset(Dataset):
     def __init__(self, rows: list[list]) -> None:
@@ -116,6 +120,7 @@ def subparagraph_8() -> None:
         epoch_accuracy = correct_predictions / total_samples
         print(f"{epochs}  loss: {epoch_loss:.4f}  accuracy: {epoch_accuracy:.4f}")
 
+
 def subparagraph_9() -> None:
     train_data = load_data(filename)
     decile_ranges = calc_y_decile_ranges(train_data[1:])
@@ -161,6 +166,7 @@ def subparagraph_9() -> None:
         epoch_loss = running_loss / total_samples
         epoch_accuracy = correct_predictions / total_samples
         print(f"{epochs}  loss: {epoch_loss:.4f}  accuracy: {epoch_accuracy:.4f}")
+
 
 def subparagraph_10() -> None:
     train_data = load_data(filename)
@@ -230,7 +236,6 @@ def subparagraph_10() -> None:
     epoch_loss = running_loss / total_samples
     epoch_accuracy = correct_predictions / total_samples
     print(f"{epochs}  loss: {epoch_loss:.4f}  accuracy: {epoch_accuracy:.4f}")
-
 
 
 if __name__ == "__main__":
