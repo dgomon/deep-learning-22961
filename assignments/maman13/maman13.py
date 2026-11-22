@@ -106,7 +106,7 @@ def main() -> None:
             loss.backward()
             optimizer.step()
 
-            batch_size = deciles.size(0)
+            batch_size = deciles.size(0)    # needed since may vary
             running_loss += loss.item() * batch_size
             predicted_labels = torch.argmax(y_model, dim=1)
             correct_predictions += (predicted_labels == deciles).sum().item()
