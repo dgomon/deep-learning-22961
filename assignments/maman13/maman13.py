@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from torch import nn
+from torch import nn, Tensor
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
@@ -42,15 +42,32 @@ class DiabetesDataset(Dataset):
         """
         rows: data rows excluding the header row (e.g., data_loader.data[1:]).
         """
-        self.samples = [row for row in rows if row]
+
+        valid_rows = [row for row in rows if row]
+
+        # row[:-1] contains the 11 feature values; row[-1] is the 0..9 class label
+        raw_features = torch.tensor(
+            [[float(val) for val in row[:-1]] for row in valid_rows],
+            dtype=torch.float32,
+        )
+        self.targets = torch.tensor(
+            [int(row[-1]) for row in valid_rows],
+            dtype=torch.long,
+        )
+
+        # normalize data
+        mean = raw_features.mean(dim=0, keepdim=True)
+        std = raw_features.std(dim=0, keepdim=True, unbiased=False)
+        std = torch.where(std == 0, torch.ones_like(std), std)
+
+        self.features = (raw_features - mean) / std
+
 
     def __len__(self) -> int:
-        return len(self.samples)
+        return self.features.size(0)
 
-    def __getitem__(self, index: int) -> tuple[torch.Tensor, int]:
-        row = self.samples[index]
-        features = torch.tensor([float(val) for val in row[:-1]], dtype=torch.float32)
-        return features, row[-1]
+    def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
+        return self.features[index], self.targets[index]
 
 def iterate_batch(optimizer, model, loss_fn, features, deciles):
         optimizer.zero_grad()
@@ -71,11 +88,7 @@ def main() -> None:
 
     diabetes_dataset = DiabetesDataset(train_data[1:])
 
-    train_dataloader = DataLoader(diabetes_dataset,  batch_size=10, shuffle=True)
-
-    iterator = iter(train_dataloader)
-    (features, deciles) = next(iterator)
-    print("index: ", deciles, " features ", features)
+    train_dataloader = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
 
     # 8.
     model = nn.Sequential(
