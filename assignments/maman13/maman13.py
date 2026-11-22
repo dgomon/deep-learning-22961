@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch import nn, Tensor
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from torch.utils.data import Dataset
 
 filename = "diabetes.csv"
@@ -162,5 +162,76 @@ def subparagraph_9() -> None:
         epoch_accuracy = correct_predictions / total_samples
         print(f"{epochs}  loss: {epoch_loss:.4f}  accuracy: {epoch_accuracy:.4f}")
 
+def subparagraph_10() -> None:
+    train_data = load_data(filename)
+    decile_ranges = calc_y_decile_ranges(train_data[1:])
+    add_class_col(train_data, decile_ranges)
+
+
+    generator = torch.Generator().manual_seed(42)
+
+    diabetes_dataset = DiabetesDataset(train_data[1:])
+
+    train_ds, test_ds = random_split(
+        diabetes_dataset, [0.8, 0.2], generator=generator
+    )
+
+    train_dataloader = DataLoader(train_ds,  batch_size=10, shuffle=False)
+    test_dataloader = DataLoader(test_ds,  batch_size=1, shuffle=False)
+
+    # 10.
+    model = nn.Sequential(
+        nn.Linear(11, 11),
+        nn.ReLU(),
+        nn.Linear(11, 10),
+        nn.LogSoftmax(dim=1),
+    )
+
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+
+    loss_fn = nn.NLLLoss()
+    epochs = 0
+    epoch_accuracy = 0.0
+
+    while epoch_accuracy < 0.5:
+        epochs += 1
+        running_loss = 0.0
+        correct_predictions = 0
+        total_samples = 0
+
+        for features, deciles in train_dataloader:
+            optimizer.zero_grad()
+            y_model = model(features)
+            loss = loss_fn(y_model, deciles)
+            loss.backward()
+            optimizer.step()
+
+            batch_size = deciles.size(0)    # needed since may vary
+            running_loss += loss.item() * batch_size
+            predicted_labels = torch.argmax(y_model, dim=1)
+            correct_predictions += (predicted_labels == deciles).sum().item()
+            total_samples += batch_size
+
+        epoch_loss = running_loss / total_samples
+        epoch_accuracy = correct_predictions / total_samples
+        print(f"{epochs}  loss: {epoch_loss:.4f}  accuracy: {epoch_accuracy:.4f}")
+
+    print("test set")
+    correct_predictions = 0
+    total_samples = 0
+    running_loss = 0
+    for features, deciles in test_dataloader:
+        batch_size = deciles.size(0)    # needed since may vary
+        y_model = model(features)
+        predicted_labels = torch.argmax(y_model, dim=1)
+        correct_predictions += (predicted_labels == deciles).sum().item()
+        total_samples += batch_size
+
+    epoch_loss = running_loss / total_samples
+    epoch_accuracy = correct_predictions / total_samples
+    print(f"{epochs}  loss: {epoch_loss:.4f}  accuracy: {epoch_accuracy:.4f}")
+
+
+
 if __name__ == "__main__":
-    subparagraph_9()
+    subparagraph_10()
