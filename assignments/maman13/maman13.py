@@ -70,7 +70,7 @@ class DiabetesDataset(Dataset):
         return self.features[index], self.targets[index]
 
 
-def main() -> None:
+def subparagraph_8() -> None:
     train_data = load_data(filename)
     decile_ranges = calc_y_decile_ranges(train_data[1:])
     add_class_col(train_data, decile_ranges)
@@ -118,4 +118,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    subparagraph_8()
