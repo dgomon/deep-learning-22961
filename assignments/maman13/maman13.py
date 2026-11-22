@@ -69,17 +69,6 @@ class DiabetesDataset(Dataset):
     def __getitem__(self, index: int) -> tuple[Tensor, Tensor]:
         return self.features[index], self.targets[index]
 
-def iterate_batch(optimizer, model, loss_fn, features, deciles):
-        optimizer.zero_grad()
-        y_model = model(features)
-        loss = loss_fn(y_model, deciles)
-        loss.backward()
-        optimizer.step()
-
-        predicted_labels = torch.argmax(y_model, dim=1)
-        accuracy = (predicted_labels == deciles).float().mean()
-
-        return loss.item(), accuracy.item()
 
 def main() -> None:
     train_data = load_data(filename)
@@ -99,20 +88,33 @@ def main() -> None:
     )
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+
+    loss_fn = nn.NLLLoss()
     epochs = 0
+    epoch_accuracy = 0.0
 
-    loss = 0
-    accuracy = 0
-    while accuracy < 0.90:
-        iterator = iter(train_dataloader)
+    while epoch_accuracy < 0.90:
         epochs += 1
-        for i in range(len(iterator)):
-            features, deciles = next(iterator)
+        running_loss = 0.0
+        correct_predictions = 0
+        total_samples = 0
+
+        for features, deciles in train_dataloader:
             optimizer.zero_grad()
-            loss, accuracy = iterate_batch(optimizer, model, nn.NLLLoss(), features, deciles)
+            y_model = model(features)
+            loss = loss_fn(y_model, deciles)
+            loss.backward()
+            optimizer.step()
 
-        print(epochs, " loss: ", loss, " accuracy: ", accuracy)
+            batch_size = deciles.size(0)
+            running_loss += loss.item() * batch_size
+            predicted_labels = torch.argmax(y_model, dim=1)
+            correct_predictions += (predicted_labels == deciles).sum().item()
+            total_samples += batch_size
 
+        epoch_loss = running_loss / total_samples
+        epoch_accuracy = correct_predictions / total_samples
+        print(f"{epochs}  loss: {epoch_loss:.4f}  accuracy: {epoch_accuracy:.4f}")
 
 
 if __name__ == "__main__":
