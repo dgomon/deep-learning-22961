@@ -12,7 +12,6 @@ filename = "diabetes.csv"
 def load_data(path: str | Path) -> list[list[str]]:
     with open(path, newline='') as csvfile:
         reader = csv.reader(csvfile, delimiter = '\t')
-        # next(reader)
         return list(reader)
 
 
@@ -80,7 +79,6 @@ def subparagraph_8() -> None:
     add_class_col(train_data, decile_ranges)
 
     diabetes_dataset = DiabetesDataset(train_data[1:])
-
     train_dataloader = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
 
     # 8.
