@@ -116,6 +116,51 @@ def subparagraph_8() -> None:
         epoch_accuracy = correct_predictions / total_samples
         print(f"{epochs}  loss: {epoch_loss:.4f}  accuracy: {epoch_accuracy:.4f}")
 
+def subparagraph_9() -> None:
+    train_data = load_data(filename)
+    decile_ranges = calc_y_decile_ranges(train_data[1:])
+    add_class_col(train_data, decile_ranges)
+
+    diabetes_dataset = DiabetesDataset(train_data[1:])
+
+    train_dataloader = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
+
+    # 9.
+    model = nn.Sequential(
+        nn.Linear(10, 10),
+        nn.ReLU(),
+        nn.Linear(10, 10),
+        nn.LogSoftmax(dim=1),
+    )
+
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+
+    loss_fn = nn.NLLLoss()
+    epochs = 0
+    epoch_accuracy = 0.0
+
+    while epoch_accuracy < 0.2:
+        epochs += 1
+        running_loss = 0.0
+        correct_predictions = 0
+        total_samples = 0
+
+        for features, deciles in train_dataloader:
+            optimizer.zero_grad()
+            y_model = model(features[:, :-1])
+            loss = loss_fn(y_model, deciles)
+            loss.backward()
+            optimizer.step()
+
+            batch_size = deciles.size(0)    # needed since may vary
+            running_loss += loss.item() * batch_size
+            predicted_labels = torch.argmax(y_model, dim=1)
+            correct_predictions += (predicted_labels == deciles).sum().item()
+            total_samples += batch_size
+
+        epoch_loss = running_loss / total_samples
+        epoch_accuracy = correct_predictions / total_samples
+        print(f"{epochs}  loss: {epoch_loss:.4f}  accuracy: {epoch_accuracy:.4f}")
 
 if __name__ == "__main__":
-    subparagraph_8()
+    subparagraph_9()
