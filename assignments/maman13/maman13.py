@@ -58,6 +58,7 @@ def iterate_batch(optimizer, model, loss_fn, features, deciles):
         loss = loss_fn(y_model, deciles)
         loss.backward()
         optimizer.step()
+
         predicted_labels = torch.argmax(y_model, dim=1)
         accuracy = (predicted_labels == deciles).float().mean()
 
@@ -96,6 +97,7 @@ def main() -> None:
             features, deciles = next(iterator)
             optimizer.zero_grad()
             loss, accuracy = iterate_batch(optimizer, model, nn.NLLLoss(), features, deciles)
+
         print(epochs, " loss: ", loss, " accuracy: ", accuracy)
 
 
