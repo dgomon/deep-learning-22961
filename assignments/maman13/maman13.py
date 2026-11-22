@@ -3,6 +3,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from torch import nn
 
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
@@ -53,7 +54,18 @@ class DiabetesDataset(Dataset):
     def __getitem__(self, index: int) -> tuple[torch.Tensor, int]:
         row = self.samples[index]
         features = torch.tensor([float(val) for val in row[:-1]], dtype=torch.float32)
-        return features, index
+        return features, row[-1]
+
+def iterate_batch(optimizer, model, loss_fn, features, deciles):
+        optimizer.zero_grad()
+        y_model = model(features)
+        loss = loss_fn(y_model, deciles)
+        loss.backward()
+        optimizer.step()
+        predicted_labels = torch.argmax(y_model, dim=1)
+        accuracy = (predicted_labels == deciles).float().mean()
+
+        return loss.item(), accuracy.item()
 
 def main() -> None:
     train_data = load_data(filename)
@@ -62,14 +74,34 @@ def main() -> None:
 
     diabetes_dataset = DiabetesDataset(train_data[1:], zero_indexed_labels=False)
 
-    train_dataloader = DataLoader(diabetes_dataset,  batch_size=1)
+    train_dataloader = DataLoader(diabetes_dataset,  batch_size=10, shuffle=True)
 
     iterator = iter(train_dataloader)
-    (features, index) = next(iterator)
-    print("index: ", index, " features ", features)
+    (features, deciles) = next(iterator)
+    print("index: ", deciles, " features ", features)
 
+    # 8.
+    model = nn.Sequential(
+        nn.Linear(11, 11),
+        nn.ReLU(),
+        nn.Linear(11, 11),
+        nn.LogSoftmax(dim=1),
+    )
 
-    pass
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    epochs = 0
+
+    accuracy = 0
+    while accuracy < 0.90:
+        iterator = iter(train_dataloader)
+        for i in range(len(iterator)):
+            epochs += 1
+            features, deciles = next(iterator)
+            optimizer.zero_grad()
+        # features, deciles = next(iterator)
+            loss, accuracy = iterate_batch(optimizer, model, nn.NLLLoss(), features, deciles)
+            print(epochs, " loss: ", loss, " accuracy: ", accuracy)
+        pass
 
 
 
