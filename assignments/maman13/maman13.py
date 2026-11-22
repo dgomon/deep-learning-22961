@@ -4,7 +4,6 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch import nn
-
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
@@ -17,7 +16,7 @@ def load_data(path: str | Path) -> list[list[str]]:
         return list(reader)
 
 def calc_y_decile_ranges(data: list[list[str]]):
-    # read y_values (still as strings) from all rows, skipping the first header row
+    # read y_values (still as strings) from all rows
     y_values = [row[-1] for row in data if row]
     # convert y values to ints
     y_values = [int(y) for y in y_values]
@@ -36,17 +35,14 @@ def add_class_col(data, decile_ranges):
     data[0].append("Class")
     for row in data[1:]:
         decile_index = find_decile_index(row[-1], decile_ranges)
-        row.append(decile_index + 1)    # 1-based decile labels [1..10]
+        row.append(decile_index)    # 0-based decile labels [0..9]
 
 class DiabetesDataset(Dataset):
-    def __init__(self, rows: list[list], zero_indexed_labels: bool = True) -> None:
+    def __init__(self, rows: list[list]) -> None:
         """
         rows: data rows excluding the header row (e.g., data_loader.data[1:]).
-        zero_indexed_labels: if True, converts 1-based class labels [1..10] to [0..9]
-                             for standard PyTorch cross-entropy loss functions.
         """
         self.samples = [row for row in rows if row]
-        self.zero_indexed_labels = zero_indexed_labels
 
     def __len__(self) -> int:
         return len(self.samples)
@@ -72,7 +68,7 @@ def main() -> None:
     decile_ranges = calc_y_decile_ranges(train_data[1:])
     add_class_col(train_data, decile_ranges)
 
-    diabetes_dataset = DiabetesDataset(train_data[1:], zero_indexed_labels=False)
+    diabetes_dataset = DiabetesDataset(train_data[1:])
 
     train_dataloader = DataLoader(diabetes_dataset,  batch_size=10, shuffle=True)
 
@@ -84,24 +80,23 @@ def main() -> None:
     model = nn.Sequential(
         nn.Linear(11, 11),
         nn.ReLU(),
-        nn.Linear(11, 11),
+        nn.Linear(11, 10),
         nn.LogSoftmax(dim=1),
     )
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
     epochs = 0
 
+    loss = 0
     accuracy = 0
     while accuracy < 0.90:
         iterator = iter(train_dataloader)
+        epochs += 1
         for i in range(len(iterator)):
-            epochs += 1
             features, deciles = next(iterator)
             optimizer.zero_grad()
-        # features, deciles = next(iterator)
             loss, accuracy = iterate_batch(optimizer, model, nn.NLLLoss(), features, deciles)
-            print(epochs, " loss: ", loss, " accuracy: ", accuracy)
-        pass
+        print(epochs, " loss: ", loss, " accuracy: ", accuracy)
 
 
 
