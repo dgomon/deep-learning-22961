@@ -124,7 +124,6 @@ def subparagraph_9() -> None:
     add_class_col(train_data, decile_ranges)
 
     diabetes_dataset = DiabetesDataset(train_data[1:])
-
     train_dataloader = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
 
     # 9.
