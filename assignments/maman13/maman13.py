@@ -233,6 +233,51 @@ def main():
                                           target_acc= 0.005, ignore_y=True)
     print("epochs_b: ", epochs_b, " acc_in_b: ", acc_in_b)
 
+
+    #13.10
+    train_ds, test_ds = random_split(dataset=diabetes_dataset,
+                                     lengths=[0.8, 0.2], generator=torch.Generator().manual_seed(42))
+
+    train_dataloader = DataLoader(train_ds,  batch_size=10, shuffle=False)
+    test_dataloader = DataLoader(test_ds,  batch_size=10, shuffle=False)
+
+    model_a = nn.Sequential(
+        nn.Linear(11, 11),
+        nn.ReLU(),
+        nn.Linear(11, 100),
+        nn.LogSoftmax(dim=1),
+    )
+
+    model_b = nn.Sequential(
+        nn.Linear(10, 10),
+        nn.ReLU(),
+        nn.Linear(10, 100),
+        nn.LogSoftmax(dim=1),
+    )
+
+    optimizer_a = torch.optim.SGD(model_a.parameters(), lr=0.01)
+    optimizer_b = torch.optim.SGD(model_b.parameters(), lr=0.01)
+
+    n_runs = 100
+    acc_out_a = 0.0
+    acc_out_b = 0.0
+
+    for i in range(n_runs):
+        epochs_a, acc_in_a = train_model(model_a, optimizer_a, train_dataloader,  0.005, False)
+        epochs_b, acc_in_b = train_model(model_b, optimizer_b, train_dataloader,  0.001, True)
+
+        acc_out_a += evaluate_model(model = model_a, dataloader=test_dataloader, ignore_y=False)
+        acc_out_b += evaluate_model(model= model_b, dataloader=test_dataloader, ignore_y= True)
+
+    acc_out_a /= n_runs
+    acc_out_b /= n_runs
+
+    print("acc_out_a: ", acc_out_a)
+    print("acc_out_b: ", acc_out_b)
+
+    # 14.
+
+
     pass
 
 
