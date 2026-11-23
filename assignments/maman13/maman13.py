@@ -100,12 +100,11 @@ def train_model(model: nn.Module, optimizer: Optimizer, dataloader: DataLoader,
             total_samples += batch_size
 
         epoch_acc = correct_predictions / total_samples
-        print(f"epoch: {epochs}   acc: {epoch_acc:.4f}")
 
     return epochs, epoch_acc
 
 
-def evaluate_model(model, dataloader, ignore_y: bool):
+def evaluate_model(model, dataloader, ignore_y: bool) -> float:
     correct_predictions = 0
     total_samples = 0
 
@@ -140,8 +139,6 @@ def main():
     epochs_a, acc_in_a = train_model(model = model_a, optimizer=optimizer_a, dataloader=dataloader_a,
                                           target_acc= 0.1, ignore_y=False)
 
-    print(f"epochs: {epochs_a}   acc: {acc_in_a:.4f}")
-
     # 9.
     dataloader_b = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
 
@@ -157,8 +154,6 @@ def main():
 
     epochs_b, acc_in_b = train_model(model = model_b, optimizer=optimizer_b, dataloader=dataloader_b,
                                           target_acc= 0.1, ignore_y=True)
-
-    print(f"epochs: {epochs_b}   acc: {acc_in_b:.4f}")
 
     # 10
     train_ds, test_ds = random_split(dataset=diabetes_dataset,
@@ -184,11 +179,18 @@ def main():
     optimizer_a = torch.optim.SGD(model_a.parameters(), lr=0.01)
     optimizer_b = torch.optim.SGD(model_b.parameters(), lr=0.01)
 
-    epochs_a, acc_in_a = train_model(model_a, optimizer_a, train_dataloader,  0.1, False)
-    epochs_b, acc_in_b = train_model(model_b, optimizer_b, train_dataloader,  0.1, True)
+    n_runs = 100
+    acc_out_a = 0.0
+    acc_out_b = 0.0
+    for i in range(n_runs):
+        epochs_a, acc_in_a = train_model(model_a, optimizer_a, train_dataloader,  0.1, False)
+        epochs_b, acc_in_b = train_model(model_b, optimizer_b, train_dataloader,  0.1, True)
 
-    acc_out_a = evaluate_model(model = model_a, dataloader=test_dataloader, ignore_y=False)
-    acc_out_b = evaluate_model(model= model_b, dataloader=test_dataloader, ignore_y= True)
+        acc_out_a += evaluate_model(model = model_a, dataloader=test_dataloader, ignore_y=False)
+        acc_out_b += evaluate_model(model= model_b, dataloader=test_dataloader, ignore_y= True)
+
+    acc_out_a /= n_runs
+    acc_out_b /= n_runs
 
     print("acc_out_a: ", acc_out_a)
     print("acc_out_b: ", acc_out_b)
