@@ -163,12 +163,10 @@ def main():
     # 10
     generator = torch.Generator().manual_seed(42)
 
-    train_ds, test_ds = random_split(
-        diabetes_dataset, [0.8, 0.2], generator=generator
-    )
+    train_ds, test_ds = random_split(dataset=diabetes_dataset, lengths=[0.8, 0.2], generator=generator)
 
     train_dataloader = DataLoader(train_ds,  batch_size=10, shuffle=False)
-    test_dataloader = DataLoader(test_ds,  batch_size=1, shuffle=False)
+    test_dataloader = DataLoader(test_ds,  batch_size=10, shuffle=False)
 
     model_a = nn.Sequential(
         nn.Linear(11, 11),
