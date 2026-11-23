@@ -72,6 +72,36 @@ class DiabetesDataset(Dataset):
         return self.features[index], self.targets[index]
 
 
+def train_model(model: nn.Module, optimizer: torch.optim.Optimizer, dataloader: DataLoader,
+                target_accuracy: float, ignore_y: bool) -> tuple[int, float | int]:
+    epochs = 0
+    epoch_accuracy = 0
+    loss_fn = nn.NLLLoss()
+
+    while epoch_accuracy < target_accuracy:
+        epochs += 1
+        running_loss = 0.0
+        correct_predictions = 0
+        total_samples = 0
+
+        for features, deciles in dataloader:
+            optimizer.zero_grad()
+            y_model = model(features) if not ignore_y else model(features[:, :-1])
+            loss = loss_fn(y_model, deciles)
+            loss.backward()
+            optimizer.step()
+
+            batch_size = deciles.size(0)
+            running_loss += loss.item() * batch_size
+            predicted_labels = torch.argmax(y_model, dim=1)
+            correct_predictions += (predicted_labels == deciles).sum().item()
+            total_samples += batch_size
+
+        epoch_accuracy = correct_predictions / total_samples
+
+    return epochs, epoch_accuracy
+
+
 def subparagraph_8() -> None:
     train_data = load_data(filename)
     decile_ranges = calc_y_decile_ranges(train_data[1:])
@@ -80,7 +110,6 @@ def subparagraph_8() -> None:
     diabetes_dataset = DiabetesDataset(train_data[1:])
     train_dataloader = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
 
-    # 8.
     model = nn.Sequential(
         nn.Linear(11, 11),
         nn.ReLU(),
@@ -90,32 +119,8 @@ def subparagraph_8() -> None:
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
-    loss_fn = nn.NLLLoss()
-    epochs = 0
-    epoch_accuracy = 0.0
-
-    while epoch_accuracy < 0.90:
-        epochs += 1
-        running_loss = 0.0
-        correct_predictions = 0
-        total_samples = 0
-
-        for features, deciles in train_dataloader:
-            optimizer.zero_grad()
-            y_model = model(features)
-            loss = loss_fn(y_model, deciles)
-            loss.backward()
-            optimizer.step()
-
-            batch_size = deciles.size(0)    # needed since may vary
-            running_loss += loss.item() * batch_size
-            predicted_labels = torch.argmax(y_model, dim=1)
-            correct_predictions += (predicted_labels == deciles).sum().item()
-            total_samples += batch_size
-
-        epoch_loss = running_loss / total_samples
-        epoch_accuracy = correct_predictions / total_samples
-        print(f"{epochs}  loss: {epoch_loss:.4f}  accuracy: {epoch_accuracy:.4f}")
+    epochs, epochs_accuracy = train_model(model, optimizer, train_dataloader,  0.1, False)
+    print(f"epochs: {epochs}   accuracy: {epochs_accuracy:.4f}")
 
 
 def subparagraph_9() -> None:
@@ -136,32 +141,8 @@ def subparagraph_9() -> None:
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
-    loss_fn = nn.NLLLoss()
-    epochs = 0
-    epoch_accuracy = 0.0
-
-    while epoch_accuracy < 0.2:
-        epochs += 1
-        running_loss = 0.0
-        correct_predictions = 0
-        total_samples = 0
-
-        for features, deciles in train_dataloader:
-            optimizer.zero_grad()
-            y_model = model(features[:, :-1])
-            loss = loss_fn(y_model, deciles)
-            loss.backward()
-            optimizer.step()
-
-            batch_size = deciles.size(0)    # needed since may vary
-            running_loss += loss.item() * batch_size
-            predicted_labels = torch.argmax(y_model, dim=1)
-            correct_predictions += (predicted_labels == deciles).sum().item()
-            total_samples += batch_size
-
-        epoch_loss = running_loss / total_samples
-        epoch_accuracy = correct_predictions / total_samples
-        print(f"{epochs}  loss: {epoch_loss:.4f}  accuracy: {epoch_accuracy:.4f}")
+    epochs, epochs_accuracy = train_model(model, optimizer, train_dataloader,  0.1, True)
+    print(f"epochs: {epochs}   accuracy: {epochs_accuracy:.4f}")
 
 
 def subparagraph_10() -> None:
@@ -208,7 +189,7 @@ def subparagraph_10() -> None:
             loss.backward()
             optimizer.step()
 
-            batch_size = deciles.size(0)    # needed since may vary
+            batch_size = deciles.size(0)
             running_loss += loss.item() * batch_size
             predicted_labels = torch.argmax(y_model, dim=1)
             correct_predictions += (predicted_labels == deciles).sum().item()
@@ -223,7 +204,7 @@ def subparagraph_10() -> None:
     total_samples = 0
     running_loss = 0
     for features, deciles in test_dataloader:
-        batch_size = deciles.size(0)    # needed since may vary
+        batch_size = deciles.size(0)
         y_model = model(features)
         predicted_labels = torch.argmax(y_model, dim=1)
         correct_predictions += (predicted_labels == deciles).sum().item()
@@ -235,4 +216,4 @@ def subparagraph_10() -> None:
 
 
 if __name__ == "__main__":
-    subparagraph_10()
+    subparagraph_9()
