@@ -161,9 +161,8 @@ def main():
     print(f"epochs: {epochs_b}   acc: {acc_in_b:.4f}")
 
     # 10
-    generator = torch.Generator().manual_seed(42)
-
-    train_ds, test_ds = random_split(dataset=diabetes_dataset, lengths=[0.8, 0.2], generator=generator)
+    train_ds, test_ds = random_split(dataset=diabetes_dataset,
+                                     lengths=[0.8, 0.2], generator=torch.Generator().manual_seed(42))
 
     train_dataloader = DataLoader(train_ds,  batch_size=10, shuffle=False)
     test_dataloader = DataLoader(test_ds,  batch_size=10, shuffle=False)
