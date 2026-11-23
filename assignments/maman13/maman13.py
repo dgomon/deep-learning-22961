@@ -84,6 +84,7 @@ def train_model(model: nn.Module, optimizer: torch.optim.Optimizer, dataloader: 
         correct_predictions = 0
         total_samples = 0
 
+        # run full epoch
         for features, deciles in dataloader:
             optimizer.zero_grad()
             y_model = model(features) if not ignore_y else model(features[:, :-1])
@@ -215,5 +216,91 @@ def subparagraph_10() -> None:
     print(f"{epochs}  loss: {epoch_loss:.4f}  accuracy: {epoch_accuracy:.4f}")
 
 
+def test_model(model, dataloader):
+    correct_predictions = 0
+    total_samples = 0
+
+    for features, labels in dataloader:
+        batch_size = labels.size(0)
+        y_model = model(features)
+        predicted_labels = torch.argmax(y_model, dim=1)
+        correct_predictions += (predicted_labels == labels).sum().item()
+        total_samples += batch_size
+
+    return correct_predictions / total_samples
+
+
+def main():
+    # 8.
+    train_data = load_data(filename)
+    decile_ranges = calc_y_decile_ranges(train_data[1:])
+    add_class_col(train_data, decile_ranges)
+
+    diabetes_dataset = DiabetesDataset(train_data[1:])
+    dataloader_a = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
+
+    model_a = nn.Sequential(
+        nn.Linear(11, 11),
+        nn.ReLU(),
+        nn.Linear(11, 10),
+        nn.LogSoftmax(dim=1),
+    )
+
+    optimizer_a = torch.optim.SGD(model_a.parameters(), lr=0.01)
+
+    epochs_a, accuracy_in_a = train_model(model = model_a, optimizer=optimizer_a, dataloader=dataloader_a,
+                                          target_accuracy= 0.1, ignore_y=False)
+
+    print(f"epochs: {epochs_a}   accuracy: {accuracy_in_a:.4f}")
+
+    # 9.
+    dataloader_b = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
+
+    # 9.
+    model_b = nn.Sequential(
+        nn.Linear(10, 10),
+        nn.ReLU(),
+        nn.Linear(10, 10),
+        nn.LogSoftmax(dim=1),
+    )
+
+    optimizer = torch.optim.SGD(model_b.parameters(), lr=0.01)
+
+    epochs_b, accuracy_in_b = train_model(model = model_b, optimizer=optimizer, dataloader=dataloader_b,
+                                          target_accuracy= 0.1, ignore_y=True)
+
+    print(f"epochs: {epochs_b}   accuracy: {accuracy_in_b:.4f}")
+
+    # 10
+    generator = torch.Generator().manual_seed(42)
+
+    train_ds, test_ds = random_split(
+        diabetes_dataset, [0.8, 0.2], generator=generator
+    )
+
+    train_dataloader = DataLoader(train_ds,  batch_size=10, shuffle=False)
+    test_dataloader = DataLoader(test_ds,  batch_size=1, shuffle=False)
+
+    model_a = nn.Sequential(
+        nn.Linear(11, 11),
+        nn.ReLU(),
+        nn.Linear(11, 10),
+        nn.LogSoftmax(dim=1),
+    )
+
+    model_b = nn.Sequential(
+        nn.Linear(10, 10),
+        nn.ReLU(),
+        nn.Linear(10, 10),
+        nn.LogSoftmax(dim=1),
+    )
+
+    epochs_a, accuracy_in_a = train_model(model_a, optimizer, train_dataloader,  0.1, False)
+    epochs_b, accuracy_in_b = train_model(model_a, optimizer, train_dataloader,  0.1, True)
+
+    accuracy_out_a = test_model(model_a, DataLoader(test_ds,  batch_size=1, shuffle=False))
+    accuracy_out_b = test_model(model_b, DataLoader(test_ds,  batch_size=1, shuffle=False))
+
+
 if __name__ == "__main__":
-    subparagraph_9()
+    main()
