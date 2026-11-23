@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch import nn, Tensor
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader, random_split
 from torch.utils.data import Dataset
 
@@ -72,7 +73,7 @@ class DiabetesDataset(Dataset):
         return self.features[index], self.targets[index]
 
 
-def train_model(model: nn.Module, optimizer: torch.optim.Optimizer, dataloader: DataLoader,
+def train_model(model: nn.Module, optimizer: Optimizer, dataloader: DataLoader,
                 target_acc: float, ignore_y: bool) -> tuple[int, float | int]:
     epochs = 0
     epoch_acc = 0
@@ -99,6 +100,7 @@ def train_model(model: nn.Module, optimizer: torch.optim.Optimizer, dataloader: 
             total_samples += batch_size
 
         epoch_acc = correct_predictions / total_samples
+        print(f"epoch: {epochs}   acc: {epoch_acc:.4f}")
 
     return epochs, epoch_acc
 
@@ -216,13 +218,13 @@ def subparagraph_10() -> None:
     print(f"{epochs}  loss: {epoch_loss:.4f}  acc: {epoch_acc:.4f}")
 
 
-def test_model(model, dataloader):
+def evaluate_model(model, dataloader, ignore_y: bool):
     correct_predictions = 0
     total_samples = 0
 
     for features, labels in dataloader:
         batch_size = labels.size(0)
-        y_model = model(features)
+        y_model = model(features) if not ignore_y else model(features[:, :-1])
         predicted_labels = torch.argmax(y_model, dim=1)
         correct_predictions += (predicted_labels == labels).sum().item()
         total_samples += batch_size
@@ -264,9 +266,9 @@ def main():
         nn.LogSoftmax(dim=1),
     )
 
-    optimizer = torch.optim.SGD(model_b.parameters(), lr=0.01)
+    optimizer_b = torch.optim.SGD(model_b.parameters(), lr=0.01)
 
-    epochs_b, acc_in_b = train_model(model = model_b, optimizer=optimizer, dataloader=dataloader_b,
+    epochs_b, acc_in_b = train_model(model = model_b, optimizer=optimizer_b, dataloader=dataloader_b,
                                           target_acc= 0.1, ignore_y=True)
 
     print(f"epochs: {epochs_b}   acc: {acc_in_b:.4f}")
@@ -295,11 +297,16 @@ def main():
         nn.LogSoftmax(dim=1),
     )
 
-    epochs_a, acc_in_a = train_model(model_a, optimizer, train_dataloader,  0.1, False)
-    epochs_b, acc_in_b = train_model(model_a, optimizer, train_dataloader,  0.1, True)
+    optimizer_a = torch.optim.SGD(model_a.parameters(), lr=0.01)
+    optimizer_b = torch.optim.SGD(model_b.parameters(), lr=0.01)
+    epochs_a, acc_in_a = train_model(model_a, optimizer_a, train_dataloader,  0.1, False)
+    epochs_b, acc_in_b = train_model(model_b, optimizer_b, train_dataloader,  0.1, True)
 
-    acc_out_a = test_model(model_a, DataLoader(test_ds,  batch_size=1, shuffle=False))
-    acc_out_b = test_model(model_b, DataLoader(test_ds,  batch_size=1, shuffle=False))
+    acc_out_a = evaluate_model(model_a, test_dataloader, False)
+    acc_out_b = evaluate_model(model_b, test_dataloader, True)
+
+    print("acc_out_a: ", acc_out_a)
+    print("acc_out_b: ", acc_out_b)
 
 
 if __name__ == "__main__":
