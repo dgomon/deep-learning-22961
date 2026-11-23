@@ -105,119 +105,6 @@ def train_model(model: nn.Module, optimizer: Optimizer, dataloader: DataLoader,
     return epochs, epoch_acc
 
 
-def subparagraph_8() -> None:
-    train_data = load_data(filename)
-    decile_ranges = calc_y_decile_ranges(train_data[1:])
-    add_class_col(train_data, decile_ranges)
-
-    diabetes_dataset = DiabetesDataset(train_data[1:])
-    train_dataloader = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
-
-    model = nn.Sequential(
-        nn.Linear(11, 11),
-        nn.ReLU(),
-        nn.Linear(11, 10),
-        nn.LogSoftmax(dim=1),
-    )
-
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-
-    epochs, epochs_acc = train_model(model, optimizer, train_dataloader,  0.1, False)
-    print(f"epochs: {epochs}   acc: {epochs_acc:.4f}")
-
-
-def subparagraph_9() -> None:
-    train_data = load_data(filename)
-    decile_ranges = calc_y_decile_ranges(train_data[1:])
-    add_class_col(train_data, decile_ranges)
-
-    diabetes_dataset = DiabetesDataset(train_data[1:])
-    train_dataloader = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
-
-    # 9.
-    model = nn.Sequential(
-        nn.Linear(10, 10),
-        nn.ReLU(),
-        nn.Linear(10, 10),
-        nn.LogSoftmax(dim=1),
-    )
-
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-
-    epochs, epochs_acc = train_model(model, optimizer, train_dataloader,  0.1, True)
-    print(f"epochs: {epochs}   acc: {epochs_acc:.4f}")
-
-
-def subparagraph_10() -> None:
-    train_data = load_data(filename)
-    decile_ranges = calc_y_decile_ranges(train_data[1:])
-    add_class_col(train_data, decile_ranges)
-
-
-    generator = torch.Generator().manual_seed(42)
-
-    diabetes_dataset = DiabetesDataset(train_data[1:])
-
-    train_ds, test_ds = random_split(
-        diabetes_dataset, [0.8, 0.2], generator=generator
-    )
-
-    train_dataloader = DataLoader(train_ds,  batch_size=10, shuffle=False)
-    test_dataloader = DataLoader(test_ds,  batch_size=1, shuffle=False)
-
-    # 10.
-    model = nn.Sequential(
-        nn.Linear(11, 11),
-        nn.ReLU(),
-        nn.Linear(11, 10),
-        nn.LogSoftmax(dim=1),
-    )
-
-    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-
-    loss_fn = nn.NLLLoss()
-    epochs = 0
-    epoch_acc = 0.0
-
-    while epoch_acc < 0.5:
-        epochs += 1
-        running_loss = 0.0
-        correct_predictions = 0
-        total_samples = 0
-
-        for features, deciles in train_dataloader:
-            optimizer.zero_grad()
-            y_model = model(features)
-            loss = loss_fn(y_model, deciles)
-            loss.backward()
-            optimizer.step()
-
-            batch_size = deciles.size(0)
-            running_loss += loss.item() * batch_size
-            predicted_labels = torch.argmax(y_model, dim=1)
-            correct_predictions += (predicted_labels == deciles).sum().item()
-            total_samples += batch_size
-
-        epoch_loss = running_loss / total_samples
-        epoch_acc = correct_predictions / total_samples
-        print(f"{epochs}  loss: {epoch_loss:.4f}  acc: {epoch_acc:.4f}")
-
-    print("test set")
-    correct_predictions = 0
-    total_samples = 0
-    running_loss = 0
-    for features, deciles in test_dataloader:
-        batch_size = deciles.size(0)
-        y_model = model(features)
-        predicted_labels = torch.argmax(y_model, dim=1)
-        correct_predictions += (predicted_labels == deciles).sum().item()
-        total_samples += batch_size
-
-    epoch_loss = running_loss / total_samples
-    epoch_acc = correct_predictions / total_samples
-    print(f"{epochs}  loss: {epoch_loss:.4f}  acc: {epoch_acc:.4f}")
-
-
 def evaluate_model(model, dataloader, ignore_y: bool):
     correct_predictions = 0
     total_samples = 0
@@ -299,11 +186,12 @@ def main():
 
     optimizer_a = torch.optim.SGD(model_a.parameters(), lr=0.01)
     optimizer_b = torch.optim.SGD(model_b.parameters(), lr=0.01)
+
     epochs_a, acc_in_a = train_model(model_a, optimizer_a, train_dataloader,  0.1, False)
     epochs_b, acc_in_b = train_model(model_b, optimizer_b, train_dataloader,  0.1, True)
 
-    acc_out_a = evaluate_model(model_a, test_dataloader, False)
-    acc_out_b = evaluate_model(model_b, test_dataloader, True)
+    acc_out_a = evaluate_model(model = model_a, dataloader=test_dataloader, ignore_y=False)
+    acc_out_b = evaluate_model(model= model_b, dataloader=test_dataloader, ignore_y= True)
 
     print("acc_out_a: ", acc_out_a)
     print("acc_out_b: ", acc_out_b)
