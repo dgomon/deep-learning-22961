@@ -15,14 +15,13 @@ def load_data(path: str | Path) -> list[list[str]]:
         return list(csv.reader(csvfile, delimiter = '\t'))
 
 
-def calc_y_decile_ranges(data: list[list[str]]):
+def calc_ranges(data: list[list[str]], num: int):
     # read y_values (still as strings) from all rows
     y_values = [row[-1] for row in data if row]
     # convert y values to ints
     y_values = [int(y) for y in y_values]
-    # 10 deciles correspond to percentiles 0, 10, 20, ..., 100
-    cutoffs = np.percentile(y_values, np.linspace(0, 100, 11))
-    # Consecutive pairs (low, high) form the 10 decile ranges
+    cutoffs = np.percentile(y_values, np.linspace(0, 100, num))
+    # Consecutive pairs (low, high) form the ranges
     return list(zip(cutoffs[:-1], cutoffs[1:]))
 
 
@@ -121,7 +120,7 @@ def evaluate_model(model, dataloader, ignore_y: bool) -> float:
 def main():
     # 8.
     train_data = load_data(filename)
-    decile_ranges = calc_y_decile_ranges(train_data[1:])
+    decile_ranges = calc_ranges(train_data[1:], 11)
     add_class_col(train_data, decile_ranges)
 
     diabetes_dataset = DiabetesDataset(train_data[1:])
@@ -194,6 +193,14 @@ def main():
 
     print("acc_out_a: ", acc_out_a)
     print("acc_out_b: ", acc_out_b)
+
+
+    # 11.
+    train_data = load_data(filename)
+    percentile_ranges = calc_ranges(train_data[1:], num = 101)
+    add_class_col(train_data, percentile_ranges)
+
+    pass
 
 
 if __name__ == "__main__":
