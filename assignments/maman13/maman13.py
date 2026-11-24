@@ -60,7 +60,6 @@ class DiabetesDataset(Dataset):
         std = torch.where(std == 0, torch.ones_like(std), std)
 
         self.features = (raw_features - mean) / std
-        # self.features = raw_features
 
         self.targets = torch.tensor(
             [int(row[-1]) for row in rows],
