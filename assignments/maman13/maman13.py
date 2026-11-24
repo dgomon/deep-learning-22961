@@ -119,9 +119,8 @@ def evaluate_model(model, dataloader, ignore_y: bool) -> float:
 
     return correct_predictions / total_samples
 
-def run_epoch(model: nn.Module, dataloader: DataLoader, optimizer, step: bool) -> float:
-    loss_fn = nn.MSELoss()
-
+def run_epoch(model: nn.Module, dataloader: DataLoader, loss_fn: nn.Module, step: bool,
+              optimizer: torch.optim.Optimizer) -> float:
     running_loss = 0.0
     total_samples = 0
     grad_ctx = nullcontext() if step else torch.no_grad()
@@ -341,11 +340,12 @@ def main():
     optimizer = torch.optim.SGD(model.parameters(), lr=0.002)
 
     n_epochs = 100
+    loss_fn = nn.MSELoss()
     history: list[tuple[float, float]] = []
 
     for epoch in range(n_epochs):
-        e_in = run_epoch(model, train_dataloader, optimizer, True)
-        e_val = run_epoch(model, val_dataloader, None, False)
+        e_in = run_epoch(model, train_dataloader, loss_fn, True, optimizer)
+        e_val = run_epoch(model, val_dataloader, loss_fn, False, None)
         history.append((e_in, e_val))
 
     show_graph(history)
