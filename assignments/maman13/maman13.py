@@ -119,7 +119,7 @@ def evaluate_model(model, dataloader, ignore_y: bool) -> float:
 
     return correct_predictions / total_samples
 
-def run_epoch(model: nn.Module, dataloader: DataLoader, optimizer, step) -> float:
+def run_epoch(model: nn.Module, dataloader: DataLoader, optimizer, step: bool) -> float:
     loss_fn = nn.MSELoss()
 
     running_loss = 0.0
@@ -334,9 +334,9 @@ def main():
     val_dataloader = DataLoader(val_ds,  batch_size=10, shuffle=False)
 
     model = nn.Sequential(
-        nn.Linear(10, 10),
+        nn.Linear(10, 5),
         nn.ReLU(),
-        nn.Linear(10, 1),
+        nn.Linear(5, 1),
     )
     optimizer = torch.optim.SGD(model.parameters(), lr=0.002)
 
