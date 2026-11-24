@@ -3,10 +3,12 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from matplotlib.ticker import MaxNLocator
 from torch import nn, Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, random_split
 from torch.utils.data import Dataset
+import matplotlib.pyplot as plt
 
 filename = "diabetes.csv"
 
@@ -57,6 +59,7 @@ class DiabetesDataset(Dataset):
         std = torch.where(std == 0, torch.ones_like(std), std)
 
         self.features = (raw_features - mean) / std
+        # self.features = raw_features
 
         self.targets = torch.tensor(
             [int(row[-1]) for row in rows],
@@ -114,6 +117,23 @@ def evaluate_model(model, dataloader, ignore_y: bool) -> float:
         total_samples += batch_size
 
     return correct_predictions / total_samples
+
+def evaluate_mse(model: nn.Module, dataloader: DataLoader, loss_fn: nn.Module) -> float:
+    model.eval()
+    running_loss = 0.0
+    total_samples = 0
+
+    with torch.no_grad():
+        for features, targets in dataloader:
+            preds = model(features).squeeze(-1)
+            targets = targets.float().squeeze(-1)
+            loss = loss_fn(preds, targets)
+
+            batch_size = targets.size(0)
+            running_loss += loss.item() * batch_size
+            total_samples += batch_size
+
+    return running_loss / total_samples
 
 
 def main():
@@ -194,92 +214,154 @@ def main():
     # print("acc_out_b: ", acc_out_b)
 
 
-    # 11.
-    train_data = load_data(filename)
-    percentile_ranges = calc_ranges(train_data[1:], num = 101)
-    add_class_col(train_data, percentile_ranges)
-
-    # 13.8
-    diabetes_dataset = DiabetesDataset(train_data[1:])
-    dataloader_a = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
-
-    model_a = nn.Sequential(
-        nn.Linear(11, 11),
-        nn.ReLU(),
-        nn.Linear(11, 100),
-        nn.LogSoftmax(dim=1),
-    )
-
-    optimizer_a = torch.optim.SGD(model_a.parameters(), lr=0.01)
-
-    epochs_a, acc_in_a = train_model(model = model_a, optimizer=optimizer_a, dataloader=dataloader_a,
-                                          target_acc= 0.005, ignore_y=False)
-    print("epochs_a: ", epochs_a, " acc_in_a: ", acc_in_a)
-
-    # 13.9
-    diabetes_dataset = DiabetesDataset(train_data[1:])
-    dataloader_b = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
-
-    model_b = nn.Sequential(
-        nn.Linear(10, 10),
-        nn.ReLU(),
-        nn.Linear(10, 100),
-        nn.LogSoftmax(dim=1),
-    )
-
-    optimizer_b = torch.optim.SGD(model_a.parameters(), lr=0.01)
-
-    epochs_b, acc_in_b = train_model(model = model_b, optimizer=optimizer_b, dataloader=dataloader_b,
-                                          target_acc= 0.005, ignore_y=True)
-    print("epochs_b: ", epochs_b, " acc_in_b: ", acc_in_b)
-
-
-    #13.10
-    train_ds, test_ds = random_split(dataset=diabetes_dataset,
-                                     lengths=[0.8, 0.2], generator=torch.Generator().manual_seed(42))
-
-    train_dataloader = DataLoader(train_ds,  batch_size=10, shuffle=False)
-    test_dataloader = DataLoader(test_ds,  batch_size=10, shuffle=False)
-
-    model_a = nn.Sequential(
-        nn.Linear(11, 11),
-        nn.ReLU(),
-        nn.Linear(11, 100),
-        nn.LogSoftmax(dim=1),
-    )
-
-    model_b = nn.Sequential(
-        nn.Linear(10, 10),
-        nn.ReLU(),
-        nn.Linear(10, 100),
-        nn.LogSoftmax(dim=1),
-    )
-
-    optimizer_a = torch.optim.SGD(model_a.parameters(), lr=0.01)
-    optimizer_b = torch.optim.SGD(model_b.parameters(), lr=0.01)
-
-    n_runs = 100
-    acc_out_a = 0.0
-    acc_out_b = 0.0
-
-    for i in range(n_runs):
-        epochs_a, acc_in_a = train_model(model_a, optimizer_a, train_dataloader,  0.005, False)
-        epochs_b, acc_in_b = train_model(model_b, optimizer_b, train_dataloader,  0.001, True)
-
-        acc_out_a += evaluate_model(model = model_a, dataloader=test_dataloader, ignore_y=False)
-        acc_out_b += evaluate_model(model= model_b, dataloader=test_dataloader, ignore_y= True)
-
-    acc_out_a /= n_runs
-    acc_out_b /= n_runs
-
-    print("acc_out_a: ", acc_out_a)
-    print("acc_out_b: ", acc_out_b)
+    # # 11.
+    # train_data = load_data(filename)
+    # percentile_ranges = calc_ranges(train_data[1:], num = 101)
+    # add_class_col(train_data, percentile_ranges)
+    #
+    # # 13.8
+    # diabetes_dataset = DiabetesDataset(train_data[1:])
+    # dataloader_a = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
+    #
+    # model_a = nn.Sequential(
+    #     nn.Linear(11, 11),
+    #     nn.ReLU(),
+    #     nn.Linear(11, 100),
+    #     nn.LogSoftmax(dim=1),
+    # )
+    #
+    # optimizer_a = torch.optim.SGD(model_a.parameters(), lr=0.01)
+    #
+    # epochs_a, acc_in_a = train_model(model = model_a, optimizer=optimizer_a, dataloader=dataloader_a,
+    #                                       target_acc= 0.005, ignore_y=False)
+    # print("epochs_a: ", epochs_a, " acc_in_a: ", acc_in_a)
+    #
+    # # 13.9
+    # diabetes_dataset = DiabetesDataset(train_data[1:])
+    # dataloader_b = DataLoader(diabetes_dataset,  batch_size=10, shuffle=False)
+    #
+    # model_b = nn.Sequential(
+    #     nn.Linear(10, 10),
+    #     nn.ReLU(),
+    #     nn.Linear(10, 100),
+    #     nn.LogSoftmax(dim=1),
+    # )
+    #
+    # optimizer_b = torch.optim.SGD(model_a.parameters(), lr=0.01)
+    #
+    # epochs_b, acc_in_b = train_model(model = model_b, optimizer=optimizer_b, dataloader=dataloader_b,
+    #                                       target_acc= 0.005, ignore_y=True)
+    # print("epochs_b: ", epochs_b, " acc_in_b: ", acc_in_b)
+    #
+    #
+    # #13.10
+    # train_ds, test_ds = random_split(dataset=diabetes_dataset,
+    #                                  lengths=[0.8, 0.2], generator=torch.Generator().manual_seed(42))
+    #
+    # train_dataloader = DataLoader(train_ds,  batch_size=10, shuffle=False)
+    # test_dataloader = DataLoader(test_ds,  batch_size=10, shuffle=False)
+    #
+    # model_a = nn.Sequential(
+    #     nn.Linear(11, 11),
+    #     nn.ReLU(),
+    #     nn.Linear(11, 100),
+    #     nn.LogSoftmax(dim=1),
+    # )
+    #
+    # model_b = nn.Sequential(
+    #     nn.Linear(10, 10),
+    #     nn.ReLU(),
+    #     nn.Linear(10, 100),
+    #     nn.LogSoftmax(dim=1),
+    # )
+    #
+    # optimizer_a = torch.optim.SGD(model_a.parameters(), lr=0.01)
+    # optimizer_b = torch.optim.SGD(model_b.parameters(), lr=0.01)
+    #
+    # n_runs = 100
+    # acc_out_a = 0.0
+    # acc_out_b = 0.0
+    #
+    # for i in range(n_runs):
+    #     epochs_a, acc_in_a = train_model(model_a, optimizer_a, train_dataloader,  0.005, False)
+    #     epochs_b, acc_in_b = train_model(model_b, optimizer_b, train_dataloader,  0.001, True)
+    #
+    #     acc_out_a += evaluate_model(model = model_a, dataloader=test_dataloader, ignore_y=False)
+    #     acc_out_b += evaluate_model(model= model_b, dataloader=test_dataloader, ignore_y= True)
+    #
+    # acc_out_a /= n_runs
+    # acc_out_b /= n_runs
+    #
+    # print("acc_out_a: ", acc_out_a)
+    # print("acc_out_b: ", acc_out_b)
 
     # 14.
 
 
-    pass
+    train_data = load_data(filename)
+    diabetes_dataset = DiabetesDataset(train_data[1:])
 
+    train_ds, val_ds = random_split(dataset=diabetes_dataset,
+                                     lengths=[0.8, 0.2], generator=torch.Generator().manual_seed(42))
+
+    train_dataloader = DataLoader(train_ds,  batch_size=10, shuffle=False)
+    val_dataloader = DataLoader(val_ds,  batch_size=10, shuffle=False)
+
+    model = nn.Sequential(
+        nn.Linear(10, 10),
+        nn.ReLU(),
+        nn.Linear(10, 1),
+    )
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.002)
+
+    loss_fn = nn.MSELoss()
+    n_epochs = 100
+    history: list[tuple[float, float]] = []
+
+    train_targets = torch.tensor(
+        [diabetes_dataset.targets[i].item() for i in train_ds.indices],
+        dtype=torch.float32,
+    )
+    y_mean = train_targets.mean()
+    y_std = train_targets.std(unbiased=False)
+    y_std = torch.where(y_std == 0, torch.ones_like(y_std), y_std)
+
+    for epoch in range(n_epochs):
+        running_loss = 0.0
+        total_samples = 0
+
+        # run full epoch
+        for features, targets in train_dataloader:
+            optimizer.zero_grad()
+            preds = model(features).squeeze(-1)
+            loss = loss_fn(preds, targets)
+            loss.backward()
+            optimizer.step()
+
+            batch_size = targets.size(0)
+            running_loss += loss.item() * batch_size
+            total_samples += batch_size
+
+        e_in = running_loss / total_samples
+        e_val = evaluate_mse(model, val_dataloader, loss_fn)
+        history.append((e_in, e_val))
+
+    epochs_range = range(1, len(history) + 1)
+    e_in_vals = [pair[0] for pair in history]
+    e_val_vals = [pair[1] for pair in history]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.plot(epochs_range, e_in_vals, marker="o", label="Train MSE (E_in)")
+    ax.plot(epochs_range, e_val_vals, marker="s", label="Validation MSE (E_val)")
+
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=10))
+    ax.set_title("Training and Validation MSE over Epochs")
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("MSE")
+    ax.grid(True, linestyle="--", alpha=0.5)
+    ax.legend()
+    fig.tight_layout()
+    plt.show()
 
 if __name__ == "__main__":
     main()
