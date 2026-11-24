@@ -4,7 +4,6 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from hist.axis import Boolean
 from matplotlib.ticker import MaxNLocator
 from torch import nn, Tensor
 from torch.optim import Optimizer
@@ -120,7 +119,9 @@ def evaluate_model(model, dataloader, ignore_y: bool) -> float:
 
     return correct_predictions / total_samples
 
-def run_epoch(model: nn.Module, dataloader: DataLoader, loss_fn: nn.Module, optimizer, step) -> float:
+def run_epoch(model: nn.Module, dataloader: DataLoader, optimizer, step) -> float:
+    loss_fn = nn.MSELoss()
+
     running_loss = 0.0
     total_samples = 0
     grad_ctx = nullcontext() if step else torch.no_grad()
@@ -141,6 +142,25 @@ def run_epoch(model: nn.Module, dataloader: DataLoader, loss_fn: nn.Module, opti
             total_samples += batch_size
 
     return running_loss / total_samples
+
+
+def show_graph(history: list[tuple[float, float]]) -> None:
+    epochs_range = range(1, len(history) + 1)
+    e_in_vals = [pair[0] for pair in history]
+    e_val_vals = [pair[1] for pair in history]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.plot(epochs_range, e_in_vals, marker="o", label="Train MSE (E_in)")
+    ax.plot(epochs_range, e_val_vals, marker="s", label="Validation MSE (E_val)")
+
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=10))
+    ax.set_title("Training and Validation MSE over Epochs")
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("MSE")
+    ax.grid(True, linestyle="--", alpha=0.5)
+    ax.legend()
+    fig.tight_layout()
+    plt.show()
 
 
 def main():
@@ -304,7 +324,6 @@ def main():
 
     # 14.
 
-
     train_data = load_data(filename)
     diabetes_dataset = DiabetesDataset(train_data[1:])
 
@@ -321,40 +340,15 @@ def main():
     )
     optimizer = torch.optim.SGD(model.parameters(), lr=0.002)
 
-    loss_fn = nn.MSELoss()
     n_epochs = 100
     history: list[tuple[float, float]] = []
 
-    train_targets = torch.tensor(
-        [diabetes_dataset.targets[i].item() for i in train_ds.indices],
-        dtype=torch.float32,
-    )
-    y_mean = train_targets.mean()
-    y_std = train_targets.std(unbiased=False)
-    y_std = torch.where(y_std == 0, torch.ones_like(y_std), y_std)
-
     for epoch in range(n_epochs):
-        e_in = run_epoch(model, train_dataloader, loss_fn, optimizer, True)
-        e_val = run_epoch(model, val_dataloader, loss_fn, None, False)
-
+        e_in = run_epoch(model, train_dataloader, optimizer, True)
+        e_val = run_epoch(model, val_dataloader, None, False)
         history.append((e_in, e_val))
 
-    epochs_range = range(1, len(history) + 1)
-    e_in_vals = [pair[0] for pair in history]
-    e_val_vals = [pair[1] for pair in history]
-
-    fig, ax = plt.subplots(figsize=(8, 5))
-    ax.plot(epochs_range, e_in_vals, marker="o", label="Train MSE (E_in)")
-    ax.plot(epochs_range, e_val_vals, marker="s", label="Validation MSE (E_val)")
-
-    ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=10))
-    ax.set_title("Training and Validation MSE over Epochs")
-    ax.set_xlabel("Epoch")
-    ax.set_ylabel("MSE")
-    ax.grid(True, linestyle="--", alpha=0.5)
-    ax.legend()
-    fig.tight_layout()
-    plt.show()
+    show_graph(history)
 
 if __name__ == "__main__":
     main()
