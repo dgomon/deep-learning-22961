@@ -1,8 +1,10 @@
 import csv
+from contextlib import nullcontext
 from pathlib import Path
 
 import numpy as np
 import torch
+from hist.axis import Boolean
 from matplotlib.ticker import MaxNLocator
 from torch import nn, Tensor
 from torch.optim import Optimizer
@@ -118,16 +120,21 @@ def evaluate_model(model, dataloader, ignore_y: bool) -> float:
 
     return correct_predictions / total_samples
 
-def evaluate_mse(model: nn.Module, dataloader: DataLoader, loss_fn: nn.Module) -> float:
-    model.eval()
+def run_epoch(model: nn.Module, dataloader: DataLoader, loss_fn: nn.Module, optimizer, step) -> float:
     running_loss = 0.0
     total_samples = 0
+    grad_ctx = nullcontext() if step else torch.no_grad()
 
-    with torch.no_grad():
+    with grad_ctx:
         for features, targets in dataloader:
             preds = model(features).squeeze(-1)
             targets = targets.float().squeeze(-1)
             loss = loss_fn(preds, targets)
+
+            if step:
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
 
             batch_size = targets.size(0)
             running_loss += loss.item() * batch_size
@@ -327,23 +334,9 @@ def main():
     y_std = torch.where(y_std == 0, torch.ones_like(y_std), y_std)
 
     for epoch in range(n_epochs):
-        running_loss = 0.0
-        total_samples = 0
+        e_in = run_epoch(model, train_dataloader, loss_fn, optimizer, True)
+        e_val = run_epoch(model, val_dataloader, loss_fn, None, False)
 
-        # run full epoch
-        for features, targets in train_dataloader:
-            optimizer.zero_grad()
-            preds = model(features).squeeze(-1)
-            loss = loss_fn(preds, targets)
-            loss.backward()
-            optimizer.step()
-
-            batch_size = targets.size(0)
-            running_loss += loss.item() * batch_size
-            total_samples += batch_size
-
-        e_in = running_loss / total_samples
-        e_val = evaluate_mse(model, val_dataloader, loss_fn)
         history.append((e_in, e_val))
 
     epochs_range = range(1, len(history) + 1)
